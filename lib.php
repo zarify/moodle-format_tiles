@@ -591,10 +591,10 @@ class format_tiles extends core_courseformat\base {
             // Instead teachers should delete and add sections when needed.
 
             $courseconfig = get_config('moodlecourse');
-            $max = (int)$courseconfig->maxsections;
+            $max = (int)($courseconfig->maxsections ?? 0);
             $element = $mform->addElement('select', 'numsections', get_string('numberweeks'), range(0, $max ?: 52));
             $mform->setType('numsections', PARAM_INT);
-            if (is_null($mform->getElementValue('numsections'))) {
+            if (is_null($mform->getElementValue('numsections')) && isset($courseconfig->numsections)) {
                 $mform->setDefault('numsections', $courseconfig->numsections);
             }
             array_unshift($elements, $element);
@@ -687,7 +687,8 @@ class format_tiles extends core_courseformat\base {
 
                 if ($section = $DB->get_record("course_sections", ['course' => $courseid, 'section' => 0])) {
                     if (!$section->visible) {
-                        set_section_visible($section->course, 0, 1);
+                        $sectioninfo = course_modinfo::instance($courseid)->get_section_info(0, MUST_EXIST);
+                        \core_courseformat\formatactions::section($courseid)->set_visibility($sectioninfo, true);
                     }
                 }
             }
@@ -837,7 +838,13 @@ class format_tiles extends core_courseformat\base {
         if ($section->section && ($action === 'setmarker' || $action === 'removemarker')) {
             // Format 'tiles' allows to set and remove markers in addition to common section actions.
             require_capability('moodle/course:setcurrentsection', context_course::instance($this->courseid));
-            course_set_marker($this->courseid, ($action === 'setmarker') ? $section->section : 0);
+            $sectionactions = \core_courseformat\formatactions::section($this->courseid);
+            if ($action === 'setmarker') {
+                $modinfo = course_modinfo::instance($this->courseid);
+                $sectionactions->set_marker($modinfo->get_section_info($section->section, MUST_EXIST), true);
+            } else {
+                $sectionactions->remove_all_markers();
+            }
             return null;
         }
 

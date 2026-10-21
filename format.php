@@ -47,7 +47,13 @@ if (!empty($displaysection)) {
 
 if (($marker >= 0) && has_capability('moodle/course:setcurrentsection', $context) && confirm_sesskey()) {
     $course->marker = $marker;
-    course_set_marker($course->id, $marker);
+    $sectionactions = \core_courseformat\formatactions::section($course->id);
+    if ($marker > 0) {
+        $sectioninfo = course_modinfo::instance($course->id)->get_section_info($marker, MUST_EXIST);
+        $sectionactions->set_marker($sectioninfo, true);
+    } else {
+        $sectionactions->remove_all_markers();
+    }
 }
 
 $renderer = $PAGE->get_renderer('format_tiles');

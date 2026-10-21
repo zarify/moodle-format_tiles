@@ -26,7 +26,6 @@ namespace format_tiles\output\courseformat\content\section;
 
 use context_course;
 use core_courseformat\output\local\content\section\controlmenu as controlmenu_base;
-use format_topics\output\courseformat\content\section\controlmenu as controlmenu_topics;
 use core_courseformat\base as course_format;
 use core\output\action_menu\link_secondary;
 use core\output\pix_icon;
@@ -38,7 +37,7 @@ use core\output\pix_icon;
  * @copyright 2022 David Watson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class controlmenu extends controlmenu_topics {
+class controlmenu extends controlmenu_base {
     /** @var course_format the course format class */
     protected $format;
 
@@ -113,5 +112,69 @@ class controlmenu extends controlmenu_topics {
         } else {
             return array_merge($controls, $parentcontrols);
         }
+    }
+
+    /**
+     * Retrieves the highlight (marker) item for the section control menu.
+     *
+     * Adapted from the core format_topics section controlmenu (copyright 2020 Ferran Recio, GPL v3 or later)
+     * so the tiles format does not depend on the format_topics plugin.
+     *
+     * @return link_secondary The menu item if applicable, otherwise null.
+     */
+    protected function get_section_highlight_item(): link_secondary {
+        $format = $this->format;
+        $section = $this->section;
+        $course = $format->get_course();
+        $sectionreturn = $format->get_sectionnum();
+
+        $highlightoff = get_string('highlightoff');
+        $highlightofficon = 'i/marked';
+
+        $highlighton = get_string('highlight');
+        $highlightonicon = 'i/marker';
+
+        if ($course->marker == $section->sectionnum) {  // Show the "light globe" on/off.
+            $action = 'section_unhighlight';
+            $icon = $highlightofficon;
+            $name = $highlightoff;
+            $attributes = [
+                'class' => 'editing_highlight',
+                'data-action' => 'sectionUnhighlight',
+                'data-sectionreturn' => $sectionreturn,
+                'data-id' => $section->id,
+                'data-icon' => $highlightofficon,
+                'data-swapname' => $highlighton,
+                'data-swapicon' => $highlightonicon,
+            ];
+        } else {
+            $action = 'section_highlight';
+            $icon = $highlightonicon;
+            $name = $highlighton;
+            $attributes = [
+                'class' => 'editing_highlight',
+                'data-action' => 'sectionHighlight',
+                'data-sectionreturn' => $sectionreturn,
+                'data-id' => $section->id,
+                'data-icon' => $highlightonicon,
+                'data-swapname' => $highlightoff,
+                'data-swapicon' => $highlightofficon,
+            ];
+        }
+
+        $url = $this->format->get_update_url(
+            action: $action,
+            ids: [$section->id],
+            returnurl: $this->baseurl,
+            returnsection: $this->section,
+            returnoptions: $this->returnoptions,
+        );
+
+        return new link_secondary(
+                url: $url,
+                icon: new pix_icon($icon, ''),
+                text: $name,
+                attributes: $attributes,
+        );
     }
 }

@@ -16,13 +16,17 @@
 
 namespace format_tiles\courseformat;
 
-use core_courseformat\stateupdates;
+use context_course;
 use core_courseformat\stateactions as stateactions_base;
-use format_topics\courseformat\stateactions as stateactions_topics;
+use core_courseformat\stateupdates;
 use stdClass;
 
 /**
  * Contains the core course state actions specific to tiles format.
+ *
+ * The highlight and unhighlight actions below are adapted from the core format_topics
+ * stateactions class (copyright 2022 Ferran Recio, GPL v3 or later) so that the tiles
+ * format does not depend on the format_topics plugin.
  *
  * @package    format_tiles
  * @copyright  2025 David Watson
@@ -45,14 +49,28 @@ class stateactions extends stateactions_base {
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
-        $actions = new stateactions_topics();
-        $actions->section_highlight(
-            $updates,
-            $course,
-            $ids,
-            $targetsectionid,
-            $targetcmid
-        );
+        global $DB;
+
+        $this->validate_sections($course, $ids, __FUNCTION__);
+        $coursecontext = context_course::instance($course->id);
+        require_capability('moodle/course:setcurrentsection', $coursecontext);
+
+        // Get the previous marked section.
+        $modinfo = get_fast_modinfo($course);
+        $previousmarker = $DB->get_field("course", "marker", ['id' => $course->id]);
+
+        $section = $modinfo->get_section_info_by_id(reset($ids), MUST_EXIST);
+        if ($section->section == $previousmarker) {
+            return;
+        }
+
+        // Mark the new one.
+        \core_courseformat\formatactions::section($course->id)->set_marker($section, true);
+        $updates->add_section_put($section->id);
+        if ($previousmarker) {
+            $section = $modinfo->get_section_info($previousmarker);
+            $updates->add_section_put($section->id);
+        }
     }
 
     /**
@@ -71,13 +89,24 @@ class stateactions extends stateactions_base {
         ?int $targetsectionid = null,
         ?int $targetcmid = null
     ): void {
-        $actions = new stateactions_topics();
-        $actions->section_unhighlight(
-            $updates,
-            $course,
-            $ids,
-            $targetsectionid,
-            $targetcmid
-        );
+        global $DB;
+
+        $this->validate_sections($course, $ids, __FUNCTION__);
+        $coursecontext = context_course::instance($course->id);
+        require_capability('moodle/course:setcurrentsection', $coursecontext);
+
+        // Get the previous marked section and unmark it.
+        $modinfo = get_fast_modinfo($course);
+        $previousmarker = $DB->get_field("course", "marker", ['id' => $course->id]);
+        \core_courseformat\formatactions::section($course->id)->remove_all_markers();
+        $section = $modinfo->get_section_info($previousmarker, MUST_EXIST);
+        $updates->add_section_put($section->id);
+
+        foreach ($ids as $sectionid) {
+            $section = $modinfo->get_section_info_by_id($sectionid, MUST_EXIST);
+            if ($section->section != $previousmarker) {
+                $updates->add_section_put($section->id);
+            }
+        }
     }
 }

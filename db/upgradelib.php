@@ -68,7 +68,8 @@ function format_tiles_upgrade_remove_numsections() {
             if (!$section->visible) {
                 // Set section zero to visible if it is hidden.
                 // (It should never be hidden see https://moodle.org/mod/forum/discuss.php?d=356850 and MDL-37256).
-                set_section_visible($courseid, 0, 1);
+                $sectioninfo = course_modinfo::instance($courseid)->get_section_info(0, MUST_EXIST);
+                \core_courseformat\formatactions::section($courseid)->set_visibility($sectioninfo, true);
             }
         }
     }
