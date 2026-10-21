@@ -1367,7 +1367,6 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     width: 30px;
 }
 .format-tiles .embed_cm_modal .embed_file_button,
-.format-tiles .embed_cm_modal .button_toggle_fullwidth,
 .format-tiles .modal-container .modal .modal-header button.btn-close {
     display: flex;
     align-items: center;
@@ -1423,7 +1422,20 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     height: 14px;
 }
 .format-tiles .embed_cm_modal .modal-title {
-    max-width: calc(100% - 120px);
+    /* Let the title take the remaining space and shrink, so the header buttons keep their natural width
+       (Moodle 6.0 header geometry squeezed the buttons together, making the completion button unclickable). */
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.format-tiles .embed_cm_modal .embed-module-buttons {
+    flex: 0 0 auto;
+}
+.format-tiles .embed_cm_modal .embed-module-buttons > * {
+    flex: 0 0 auto;
 }
 .format-tiles .sectionerror {
     margin-left: 30px;

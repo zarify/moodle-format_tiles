@@ -28,8 +28,8 @@
  */
 
 define(["jquery", "core/modal", "core/config", "core/templates", "core/notification", "core/ajax",
-        'core/fragment', "core/modal_events"],
-    function ($, Modal, config, Templates, Notification, ajax, Fragment, ModalEvents) {
+        'core/fragment', "core/modal_events", 'core_course/events'],
+    function ($, Modal, config, Templates, Notification, ajax, Fragment, ModalEvents, CourseEvents) {
         "use strict";
 
         var loadingIconHtml;
@@ -51,7 +51,6 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
             closeBtn: "button.btn-close",
             ACTIVITY: "li.activity",
             URLACTIVITYPOPUPLINK: ".activity.modtype_url.urlpopup a",
-            toggleFullWidthButton: ".button_toggle_fullwidth",
             modalHeader: ".modal-header",
             embedModuleButtons: ".embed-module-buttons",
             iframe: "iframe"
@@ -83,41 +82,6 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                 if (iframes.length || objects.length || moodleMediaPlayer.length) {
                     modal.remove();
                 }
-            });
-        };
-
-        /**
-         * Register the handler for the button to toggle full width of the modal.
-         *
-         * @param {object} modalRoot the modal root containing the button to add the handler to
-         */
-        const registerModalFullWidthToggler = (modalRoot) => {
-            // Store original modal width.
-            const maxWidthIfNotFullWidth = modalRoot.find(Selector.modalDialog).css('max-width');
-            const toggleFullWidthButton = modalRoot.find(Selector.toggleFullWidthButton);
-            if (maxWidthIfNotFullWidth.includes('%') && parseInt(maxWidthIfNotFullWidth.replace('%', '')) >= 100) {
-                // In case we have a already 100% max width modal, we just hide the button and do nothing.
-                toggleFullWidthButton.css('display', 'none');
-                return;
-            }
-
-            toggleFullWidthButton.click(() => {
-                const toggleIcon = toggleFullWidthButton.find('i');
-                if (toggleIcon.hasClass('fa-chevron-right')) {
-                    toggleIcon.removeClass('fa-chevron-right');
-                    toggleIcon.addClass('fa-chevron-left');
-                } else {
-                    toggleIcon.removeClass('fa-chevron-left');
-                    toggleIcon.addClass('fa-chevron-right');
-                }
-
-                const currentMaxWidth = modalRoot.find(Selector.modalDialog).css('max-width');
-                const newMaxWidth = currentMaxWidth !== '100%' ? '100%' : maxWidthIfNotFullWidth;
-                modalRoot.find(Selector.modalDialog).animate({"max-width": newMaxWidth}, "fast");
-                // In case we're displaying an embedded link including an iframe, we have also have to apply
-                // the new width to the body and the iframe itself.
-                modalRoot.find(Selector.modalBody).animate({"max-width": newMaxWidth}, "fast");
-                modalRoot.find("iframe").attr("width", newMaxWidth);
             });
         };
 
@@ -271,7 +235,21 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                     modalRoot.find(Selector.modalHeader).append(html);
                     modalRoot.find(Selector.closeBtn).detach().appendTo(modalRoot.find(Selector.embedModuleButtons));
                     const toggleCompletionSelector = '[data-action="toggle-manual-completion"]';
-                    modalRoot.find(toggleCompletionSelector).on('click', () => {
+                    let restoreCompletionFocus = false;
+                    // Core replaces the focused button after saving completion.
+                    // Preserve keyboard control without stealing focus the user moved elsewhere.
+                    modalRoot.on(CourseEvents.manualCompletionToggled, (event) => {
+                        if (restoreCompletionFocus && modalRoot.is(':visible') &&
+                                document.activeElement === document.body) {
+                            const button = event.target.closest(toggleCompletionSelector);
+                            if (button) {
+                                button.focus();
+                            }
+                        }
+                        restoreCompletionFocus = false;
+                    });
+                    modalRoot.on('click', toggleCompletionSelector, (event) => {
+                        restoreCompletionFocus = document.activeElement === event.currentTarget;
                         require(["format_tiles/completion"], function (completion) {
                             // In this case, core will handle the request to set the new completion value in the DB.
                             // We wait a moment to allow that to get a head start.
@@ -284,7 +262,6 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                             }, 300);
                         });
                     });
-                    registerModalFullWidthToggler(modalRoot);
                 }).fail(Notification.exception);
 
                 // Allow a short delay before we resize the modal, and check a few times, as content may be loading.
@@ -293,7 +270,7 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                 }, 500);
 
                 return true;
-            });
+            }).catch(Notification.exception);
             return false;
         };
 
@@ -333,8 +310,12 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                 }
 
                 // Now check and adjust the width of the modal.
+                // Only fixed-width iframes need this. A 100%-wide iframe (the plugin's own mod_view iframe and
+                // most page content) already fills the body, so measuring it would widen the modal on every
+                // height check, ratcheting it wider and moving the header buttons while the user clicks them.
+                const fixedWidth = parseInt(iframe.getAttribute('width'), 10);
                 var iframeWidth = Math.min(iframeSelector.width(), win.width());
-                if (iframeWidth > modal.width() - MODAL_MARGIN) {
+                if (!isNaN(fixedWidth) && iframeWidth > modal.width() - MODAL_MARGIN) {
                     modal.animate(
                         {"max-width": Math.max(iframeWidth + MODAL_MARGIN, modalMinWidth())},
                         "fast"
