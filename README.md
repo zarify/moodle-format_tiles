@@ -15,27 +15,52 @@ Once installed:
 
 - an Administrator will be able to see the plugins settings under Site Administration > Plugins > Course Formats > Tiles
 
-## Branches
+## This fork
 
-At the time of writing (October 2025) the following branches were being maintained:
+This repository is a self-maintained fork of bycs-lp/moodle-format_tiles (upstream last release
+5.1.0.2, January 2026), kept for the school site on the `master-forked` branch, which is this
+fork's default branch. The base commit is upstream `b20b26c`.
 
-| Moodle version | Tiles branch    |
-|----------------|-----------------|
-| 4.5 LTS        | moodle45        |
-| 5.0            | moodle50        |
-| 5.1            | master/moodle51 |
+**Supported Moodle versions:** 5.3 (LTS) – 6.0, declared as `$plugin->supported = [503, 600]`.
+The 5.3 floor exists because the replacement section APIs
+(`\core_courseformat\formatactions::section()` → `core_courseformat\local\sectionactions`) do not
+exist in Moodle 4.5 or 5.0–5.2.
 
-The following branches are in the repo but are no longer receiving updates:
+Verified on Moodle 6.0dev (Build 20261021, core commit `46c042e7d`) and on Moodle 5.3 LTS with the
+plugin's four PHPUnit files, its Behat suite (`--tags=@format_tiles`) and a browser smoke test of
+the tile grid, activity modals, section highlight/hide and dark mode.
 
-| Moodle version  | Tiles branch    |
-|-----------------|-----------------|
-| 4.0             | moodle41b*      |
-| 4.1 LTS         | moodle41b*      |
-| 4.2             | moodle42b       |
-| 4.3             | moodle43        |
-| 4.4             | moodle44        |
+## Moodle 6 compatibility
 
-(*The moodle41 branch was used for both Moodle 4.0 and 4.1)
+The fork removes every dependency on APIs that core has announced for final deprecation in 6.0:
+
+- section marker and visibility actions (`course_set_marker()`, `set_section_visible()`) now use
+  `\core_courseformat\formatactions::section($courseid)` with `set_marker()`,
+  `remove_all_markers()` and `set_visibility()`;
+- the tile highlight/unhighlight state actions and the section highlight menu item are local
+  implementations adapted from core `format_topics` (GPL), so the format no longer needs the
+  `format_topics` plugin installed;
+- the format's own `content\cm\controlmenu` override was deleted (its method was already unused);
+  core's `get_cm_control_items()` output is reached through the standard output-class fallback;
+- the modal scripts report rejected modal creation, guard against concurrent icon-picker modals,
+  restore keyboard focus after a manual completion toggle and no longer widen the PDF modal on
+  every height check; the full-width toggle was removed because its header button overlapped the
+  completion button in the Moodle 6.0 modal header;
+- templates use the core `editsection` string (`editsummary` was removed in Moodle 5.2).
+
+Two watch-points remain, both announced by core but not yet executed:
+
+1. `numsections` / `maxsections` are still read when building the "new course" form. Core plans to
+   remove them (MDL-85284, MDL-85272); when that lands, revisit `create_edit_form_elements()` in
+   `lib.php` and `course_section_manager::get_max_sections()`.
+2. This plugin carries copies of `core_courseformat/local/*` templates and edits the modal header
+   DOM (`.modal-header`, `button.btn-close`). Re-port them when core changes those templates or
+   `lib/templates/modal.mustache`.
+
+## Re-testing per Moodle release
+
+Click an activity inside a tile and assert `.modal.show.embed_cm_modal` opens with a clean browser
+console, then exercise **Highlight** and **Hide** on a section from the tile's section menu.
 
 ## Compatibility and Support
 This version of the plugin is compatible with the Moodle version specified in the plugin's version.php file (under $plugin->supported).  Other versions are available for prior versions of Moodle.

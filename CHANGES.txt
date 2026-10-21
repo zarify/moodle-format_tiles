@@ -758,3 +758,15 @@ Other
 =====================
 - Fix subtile completion not responding section zero
 - Code format clean up
+
+5.2.0 (2026102100)
+=====================
+- Declared support for Moodle 5.3 LTS and Moodle 6.0 ($plugin->supported = [503, 600])
+- Moodle 6.0 compatibility: section marker and visibility calls moved to core_courseformat formatactions
+- Removed the dependency on the format_topics plugin (local highlight/unhighlight state actions)
+- Deleted the unused course module control menu override
+- Modal scripts: handle rejected modal creation, guard concurrent icon picker launches, restore focus after
+  a manual completion toggle and stop the PDF modal from widening on every height check
+- Removed the modal full width toggle (it overlapped the completion button in the Moodle 6.0 modal header)
+- Use the core editsection string (editsummary was removed in Moodle 5.2)
+- Tests migrated to the 5.2+ course format APIs and PHPUnit attributes
