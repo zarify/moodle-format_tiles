@@ -727,6 +727,10 @@ class course_output implements \renderable, \templatable {
         if (!empty($sectioncmids)) {
             $coursecms = $this->modinfo->cms;
             $includesubsectiondata = get_config('format_tiles', 'progressincludesubsections');
+            if ($includesubsectiondata === false) {
+                // get_config() returns false for a setting that was never saved; the admin default is on.
+                $includesubsectiondata = 1;
+            }
             foreach ($sectioncmids as $cmid) {
                 $thismod = $coursecms[$cmid];
                 $issubsection = $thismod->modname === 'subsection';

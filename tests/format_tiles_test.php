@@ -43,6 +43,7 @@ require_once($CFG->dirroot . '/course/lib.php');
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_resource_modal_cmids')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_modal_allowed_cm_ids')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'cm_modal_type')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\output\course_output::class, 'section_progress')]
 final class format_tiles_test extends \advanced_testcase {
     /**
      * The format options to use when setting up a course in tiles format.
@@ -510,5 +511,72 @@ final class format_tiles_test extends \advanced_testcase {
                 \format_tiles\local\modal_helper::clear_cache_modal_cmids($course->id, $modname)
             );
         }
+    }
+
+    /**
+     * Create a course with a completion tracked page in section 1 and a subsection
+     * holding a second completion tracked page, as a student who completed the section 1 page.
+     *
+     * @return array the course and the course output instance for the student.
+     */
+    private function create_course_with_subsection(): array {
+        $this->resetAfterTest(true);
+        $this->setAdminUser();
+        $course = $this->getDataGenerator()->create_course(
+            $this->tilescourseformatoptions + ['enablecompletion' => 1],
+            ['createsections' => true]
+        );
+        $pagegenerator = $this->getDataGenerator()->get_plugin_generator('mod_page');
+        $page = $pagegenerator->create_instance([
+            'course' => $course->id,
+            'section' => 1,
+            'completion' => COMPLETION_TRACKING_MANUAL,
+        ]);
+        $subsection = $this->getDataGenerator()->create_module('subsection', [
+            'course' => $course->id,
+            'section' => 1,
+            'name' => 'Sub',
+        ]);
+        $delegatedsectionnum = get_fast_modinfo($course)->get_cm($subsection->cmid)
+            ->get_delegated_section_info()->sectionnum;
+        $pagegenerator->create_instance([
+            'course' => $course->id,
+            'section' => $delegatedsectionnum,
+            'completion' => COMPLETION_TRACKING_MANUAL,
+        ]);
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $this->setUser($student);
+        (new \completion_info($course))->update_state(
+            get_fast_modinfo($course)->get_cm($page->cmid),
+            COMPLETION_COMPLETE
+        );
+        return [$course, new \format_tiles\output\course_output($course, true)];
+    }
+
+    /**
+     * A never saved progressincludesubsections setting must fall back to the admin default (on).
+     */
+    public function test_section_progress_counts_subsections_when_setting_unset(): void {
+        [$course, $output] = $this->create_course_with_subsection();
+        unset_config('progressincludesubsections', 'format_tiles');
+        $this->assertSame(['completed' => 1, 'outof' => 2], $output->section_progress(1));
+    }
+
+    /**
+     * An explicitly enabled progressincludesubsections setting counts subsection activities.
+     */
+    public function test_section_progress_counts_subsections_when_setting_on(): void {
+        [$course, $output] = $this->create_course_with_subsection();
+        set_config('progressincludesubsections', 1, 'format_tiles');
+        $this->assertSame(['completed' => 1, 'outof' => 2], $output->section_progress(1));
+    }
+
+    /**
+     * An explicitly disabled progressincludesubsections setting keeps subsection activities out.
+     */
+    public function test_section_progress_skips_subsections_when_setting_off(): void {
+        [$course, $output] = $this->create_course_with_subsection();
+        set_config('progressincludesubsections', 0, 'format_tiles');
+        $this->assertSame(['completed' => 1, 'outof' => 1], $output->section_progress(1));
     }
 }
