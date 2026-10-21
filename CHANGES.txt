@@ -770,3 +770,16 @@ Other
 - Removed the modal full width toggle (it overlapped the completion button in the Moodle 6.0 modal header)
 - Use the core editsection string (editsummary was removed in Moodle 5.2)
 - Tests migrated to the 5.2+ course format APIs and PHPUnit attributes
+
+5.2.1 (2026102200)
+==================
+- Count activities in subsections towards tile and overall progress when the progressincludesubsections setting was never saved
+- Escape activity names in HTML attributes (MBS-11185)
+- Require moodle/course:update in the set_image web service (MBS-11187)
+- Escape the inline folder name in the folder display warning
+- Escape outcome filter button titles
+- Clean up the format_tiles_tile_options schema in install.xml
+- Close the section zero container inside its own conditional in above_tiles
+- Keep the tile overlay fixed over the whole page
+- Show the above-tiles controls as core toggle switches
+- Fix the icon picker during course creation
