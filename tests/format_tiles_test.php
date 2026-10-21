@@ -36,6 +36,13 @@ require_once($CFG->dirroot . '/course/lib.php');
  * @copyright  2018 David Watson {@link http://evolutioncode.uk}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\format_option::class, 'set')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles::class, 'update_course_format_options')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\format_tiles_inplace_editable::class)]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\video_cm::class, 'check_modify_embedded_url')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_resource_modal_cmids')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_modal_allowed_cm_ids')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'cm_modal_type')]
 final class format_tiles_test extends \advanced_testcase {
     /**
      * The format options to use when setting up a course in tiles format.
@@ -57,7 +64,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test updating the section format options e.g. changing the tile icon for a tile.
-     * @covers \format_tiles\local\format_option::set
      * @throws \moodle_exception
      */
     public function test_update_section_format_options(): void {
@@ -93,7 +99,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test updating the course format options e.g. change the tile for a course.
-     * @covers \format_tiles::update_course_format_options
      * @throws \dml_exception
      */
     public function test_update_course_format_options(): void {
@@ -169,7 +174,6 @@ final class format_tiles_test extends \advanced_testcase {
     /**
      * Test web service updating section name
      * Function copied from format_topics with format changed to tiles.
-     * @covers \format_tiles_inplace_editable
      */
     public function test_update_inplace_editable(): void {
         global $CFG, $DB;
@@ -206,7 +210,6 @@ final class format_tiles_test extends \advanced_testcase {
     /**
      * Test callback updating section name
      * Function copied from format_topics with format changed to tiles.
-     * @covers \format_tiles_inplace_editable
      */
     public function test_inplace_editable(): void {
         global $DB, $PAGE;
@@ -238,7 +241,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test video embed URL replacement
-     * @covers \format_tiles\local\video_cm::check_modify_embedded_url
      */
     public function test_video_urls(): void {
         $this->resetAfterTest();
@@ -303,8 +305,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test modal helper CM ID getter.
-     * @covers \format_tiles\local\modal_helper::get_resource_modal_cmids
-     * @covers \format_tiles\local\modal_helper::cm_modal_type
      */
     public function test_modal_resource_cmids(): void {
         global $CFG, $DB;
@@ -417,8 +417,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test modal helper CM ID getter for URLs.
-     * @covers \format_tiles\local\modal_helper::get_modal_allowed_cm_ids
-     * @covers \format_tiles\local\modal_helper::cm_modal_type
      */
     public function test_modal_url_cmids(): void {
         global $CFG, $DB;
@@ -466,8 +464,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test modal helper CM ID getter for pages.
-     * @covers \format_tiles\local\modal_helper::get_modal_allowed_cm_ids
-     * @covers \format_tiles\local\modal_helper::cm_modal_type
      */
     public function test_modal_page_cmids(): void {
         $this->resetAfterTest();
@@ -496,8 +492,6 @@ final class format_tiles_test extends \advanced_testcase {
 
     /**
      * Test modal helper CM ID clear.
-     * @covers \format_tiles\local\modal_helper::get_modal_allowed_cm_ids
-     * @covers \format_tiles\local\modal_helper::cm_modal_type
      */
     public function test_modal_cmids_cache_clear(): void {
         $this->resetAfterTest();

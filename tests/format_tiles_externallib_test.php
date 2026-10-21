@@ -39,6 +39,8 @@ require_once($CFG->dirroot . '/webservice/tests/helpers.php');
  * @copyright  2018 David Watson {@link http://evolutioncode.uk}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\external\external::class, 'set_image')]
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\external\external::class, 'set_session_width')]
 final class format_tiles_externallib_test extends \externallib_advanced_testcase {
     /**
      * The format options to use when setting up a course in tiles format.
@@ -60,7 +62,6 @@ final class format_tiles_externallib_test extends \externallib_advanced_testcase
 
     /**
      * Test the setting of a course/tile icon using the web service.
-     * @covers \format_tiles\external\external::set_image
      * @throws \coding_exception
      * @throws \dml_exception
      * @throws \invalid_parameter_exception
@@ -146,7 +147,6 @@ final class format_tiles_externallib_test extends \externallib_advanced_testcase
 
     /**
      * Test the setting of a session screen width variable using the web service.
-     * @covers \format_tiles\external\external::set_session_width
      * @throws \dml_exception
      * @throws \invalid_response_exception
      * @throws \moodle_exception

@@ -258,35 +258,50 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         $this->getDataGenerator()->create_course(['numsections' => 5, 'format' => 'tiles'], ['createsections' => true]);
         $course = $this->getDataGenerator()->create_course(['numsections' => 10], ['createsections' => true]);
         $oldsections = [];
-        $sections = [];
         foreach ($DB->get_records('course_sections', ['course' => $course->id], 'id') as $section) {
             $oldsections[$section->section] = $section->id;
-            $sections[$section->id] = $section->section;
         }
         ksort($oldsections);
 
-        $neworder = reorder_sections($sections, 2, 4);
-        $neworder = array_keys($neworder);
-        $this->assertEquals($oldsections[0], $neworder[0]);
-        $this->assertEquals($oldsections[1], $neworder[1]);
-        $this->assertEquals($oldsections[2], $neworder[4]);
-        $this->assertEquals($oldsections[3], $neworder[2]);
-        $this->assertEquals($oldsections[4], $neworder[3]);
-        $this->assertEquals($oldsections[5], $neworder[5]);
-        $this->assertEquals($oldsections[6], $neworder[6]);
+        // Move section 2 down to position 4.
+        $modinfo = get_fast_modinfo($course);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at($modinfo->get_section_info(2), 4);
+        $sections = [];
+        foreach ($DB->get_records('course_sections', ['course' => $course->id], 'id') as $section) {
+            $sections[$section->section] = $section->id;
+        }
+        ksort($sections);
+        $this->assertEquals($oldsections[0], $sections[0]);
+        $this->assertEquals($oldsections[1], $sections[1]);
+        $this->assertEquals($oldsections[3], $sections[2]);
+        $this->assertEquals($oldsections[4], $sections[3]);
+        $this->assertEquals($oldsections[2], $sections[4]);
+        $this->assertEquals($oldsections[5], $sections[5]);
+        $this->assertEquals($oldsections[6], $sections[6]);
 
-        $neworder = reorder_sections($sections, 4, 2);
-        $neworder = array_keys($neworder);
-        $this->assertEquals($oldsections[0], $neworder[0]);
-        $this->assertEquals($oldsections[1], $neworder[1]);
-        $this->assertEquals($oldsections[2], $neworder[3]);
-        $this->assertEquals($oldsections[3], $neworder[4]);
-        $this->assertEquals($oldsections[4], $neworder[2]);
-        $this->assertEquals($oldsections[5], $neworder[5]);
-        $this->assertEquals($oldsections[6], $neworder[6]);
-
-        $neworder = reorder_sections(1, 2, 4);
-        $this->assertFalse($neworder);
+        // Move section 4 up to position 2 (fresh course so the expectation is independent of the first move).
+        $course = $this->getDataGenerator()->create_course(['numsections' => 10], ['createsections' => true]);
+        $oldsections = [];
+        foreach ($DB->get_records('course_sections', ['course' => $course->id], 'id') as $section) {
+            $oldsections[$section->section] = $section->id;
+        }
+        ksort($oldsections);
+        $modinfo = get_fast_modinfo($course);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at($modinfo->get_section_info(4), 2);
+        $sections = [];
+        foreach ($DB->get_records('course_sections', ['course' => $course->id], 'id') as $section) {
+            $sections[$section->section] = $section->id;
+        }
+        ksort($sections);
+        $this->assertEquals($oldsections[0], $sections[0]);
+        $this->assertEquals($oldsections[1], $sections[1]);
+        $this->assertEquals($oldsections[4], $sections[2]);
+        $this->assertEquals($oldsections[2], $sections[3]);
+        $this->assertEquals($oldsections[3], $sections[4]);
+        $this->assertEquals($oldsections[5], $sections[5]);
+        $this->assertEquals($oldsections[6], $sections[6]);
     }
 
     /**
@@ -306,7 +321,8 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         ksort($oldsections);
 
         // Test move section down..
-        move_section_to($course, 2, 4);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(2), 4);
         $sections = [];
         foreach ($DB->get_records('course_sections', ['course' => $course->id]) as $section) {
             $sections[$section->section] = $section->id;
@@ -339,7 +355,8 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         ksort($oldsections);
 
         // Test move section up..
-        move_section_to($course, 6, 4);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(6), 4);
         $sections = [];
         foreach ($DB->get_records('course_sections', ['course' => $course->id]) as $section) {
             $sections[$section->section] = $section->id;
@@ -367,34 +384,39 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         $course = $this->getDataGenerator()->create_course(['numsections' => 10, 'format' => 'tiles'], ['createsections' => true]);
 
         // Set course marker to the section we are going to move..
-        course_set_marker($course->id, 2);
+        \core_courseformat\formatactions::section($course->id)
+            ->set_marker(get_fast_modinfo($course)->get_section_info(2), true);
         // Verify that the course marker is set correctly.
         $course = $DB->get_record('course', ['id' => $course->id]);
         $this->assertEquals(2, $course->marker);
 
         // Test move the marked section down..
-        move_section_to($course, 2, 4);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(2), 4);
 
         // Verify that the course marker has been moved along with the section..
         $course = $DB->get_record('course', ['id' => $course->id]);
         $this->assertEquals(4, $course->marker);
 
         // Test move the marked section up..
-        move_section_to($course, 4, 3);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(4), 3);
 
         // Verify that the course marker has been moved along with the section..
         $course = $DB->get_record('course', ['id' => $course->id]);
         $this->assertEquals(3, $course->marker);
 
         // Test moving a non-marked section above the marked section..
-        move_section_to($course, 4, 2);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(4), 2);
 
         // Verify that the course marker has been moved down to accomodate..
         $course = $DB->get_record('course', ['id' => $course->id]);
         $this->assertEquals(4, $course->marker);
 
         // Test moving a non-marked section below the marked section..
-        move_section_to($course, 3, 6);
+        \core_courseformat\formatactions::section($course->id)
+            ->move_at(get_fast_modinfo($course)->get_section_info(3), 6);
 
         // Verify that the course marker has been up to accomodate..
         $course = $DB->get_record('course', ['id' => $course->id]);
@@ -499,7 +521,8 @@ final class format_tiles_courselib_test extends \advanced_testcase {
             3 => [$assign5->cmid]], get_fast_modinfo($course)->sections);
 
         // Remove marked section.
-        course_set_marker($course->id, 1);
+        \core_courseformat\formatactions::section($course->id)
+            ->set_marker(get_fast_modinfo($course)->get_section_info(1), true);
         $this->assertTrue(course_get_format($course)->is_section_current(1));
         $this->assertTrue(course_delete_section($course, 1, true));
         $this->assertFalse(course_get_format($course)->is_section_current(1));
@@ -525,7 +548,7 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         $oldsectionid = $cm->section;
 
         // Perform the move
-        moveto_module($cm, $newsection);
+        \core_courseformat\formatactions::cm($course)->move_end_section($cm->id, $newsection->id);
 
         $cms = get_fast_modinfo($course)->get_cms();
         $cm = reset($cms);
@@ -551,7 +574,7 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         // Perform a second move as some issues were only seen on the second move
         $newsection = get_fast_modinfo($course)->get_section_info(2);
         $oldsectionid = $cm->section;
-        moveto_module($cm, $newsection);
+        \core_courseformat\formatactions::cm($course)->move_end_section($cm->id, $newsection->id);
 
         $cms = get_fast_modinfo($course)->get_cms();
         $cm = reset($cms);
@@ -589,7 +612,8 @@ final class format_tiles_courselib_test extends \advanced_testcase {
             ['section' => $sectionnumber]
         );
         $sink = $this->redirectEvents();
-        set_section_visible($course->id, $sectionnumber, 0);
+        \core_courseformat\formatactions::section($course->id)
+            ->set_visibility(get_fast_modinfo($course)->get_section_info($sectionnumber), false);
         $events = $sink->get_events();
 
         // Extract the number of events related to what we are testing, other events
@@ -1058,7 +1082,7 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         $sink->clear();
         $course = get_course($module->course);
         $cm = get_coursemodule_from_id('assign', $module->cmid, 0, false, MUST_EXIST);
-        $newcm = duplicate_module($course, $cm);
+        $newcm = \core_courseformat\formatactions::cm($course)->duplicate($cm->id);
         $events = $sink->get_events();
         $eventscount = 0;
         $sink->close();
@@ -1150,6 +1174,8 @@ final class format_tiles_courselib_test extends \advanced_testcase {
     public function test_course_change_sortorder_by_one() {
         global $DB;
 
+        // Category course listings are capability filtered, so run as a user who can see the courses.
+        $this->setAdminUser();
         $this->resetAfterTest(true);
 
         $generator = $this->getDataGenerator();
@@ -1204,7 +1230,7 @@ final class format_tiles_courselib_test extends \advanced_testcase {
     }
 
     /**
-     * Test duplicate_module()
+     * Test duplicating a course module.
      */
     public function test_duplicate_module() {
         $this->setAdminUser();
@@ -1213,7 +1239,9 @@ final class format_tiles_courselib_test extends \advanced_testcase {
         $res = self::getDataGenerator()->create_module('resource', ['course' => $course]);
         $cm = get_coursemodule_from_id('resource', $res->cmid, 0, false, MUST_EXIST);
 
-        $newcm = duplicate_module($course, $cm);
+        $duplicated = \core_courseformat\formatactions::cm($course)->duplicate($cm->id);
+        // Load the duplicate's module record so the comparison is record to record.
+        $newcm = get_coursemodule_from_id('resource', $duplicated->id, 0, false, MUST_EXIST);
 
         // Make sure they are the same, except obvious id changes.
         foreach ($cm as $prop => $value) {

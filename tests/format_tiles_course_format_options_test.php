@@ -31,6 +31,9 @@ use format_tiles\local\format_option;
  * @copyright  2024 David Watson {@link http://evolutioncode.uk}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\format_option::class, 'migrate_legacy_format_options')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\backup_format_tiles_plugin::class)]
+#[\PHPUnit\Framework\Attributes\CoversClass(\restore_format_tiles_plugin::class)]
 final class format_tiles_course_format_options_test extends \advanced_testcase {
     /**
      * This method is called before the first test of this test class is run.
@@ -45,7 +48,6 @@ final class format_tiles_course_format_options_test extends \advanced_testcase {
 
     /**
      * Create a mock course with legacy format options and test migration.
-     * @covers \format_tiles\local\format_option::migrate_legacy_format_options
      * @return void
      * @throws \dml_exception
      * @throws \moodle_exception
@@ -134,13 +136,11 @@ final class format_tiles_course_format_options_test extends \advanced_testcase {
 
     /**
      * Take old course MBZ files and restore then check photos.
-     * @dataProvider restore_from_old_format_mbz_provider
-     * @covers \backup_format_tiles_plugin
-     * @covers \restore_format_tiles_plugin
      * @param string $mbzfile
      * @return void
      * @throws \dml_exception
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('restore_from_old_format_mbz_provider')]
     public function test_restore_from_old_format_mbz(string $mbzfile): void {
         global $DB, $CFG;
         $this->resetAfterTest();
