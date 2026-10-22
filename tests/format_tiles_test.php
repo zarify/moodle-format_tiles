@@ -722,6 +722,49 @@ final class format_tiles_test extends \advanced_testcase {
     }
 
     /**
+     * A module that cannot display itself (qbank) is not rendered as a tile activity and does not count for progress.
+     */
+    public function test_non_displayable_module_is_not_rendered(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        // Completion must be on for the course, otherwise section_progress() has no completion_info to consult.
+        $course = $this->getDataGenerator()->create_course(
+            array_merge($this->tilescourseformatoptions, ['enablecompletion' => 1]),
+            ['createsections' => true]
+        );
+        $bank = $this->getDataGenerator()->get_plugin_generator('mod_qbank')->create_instance([
+            'course' => $course->id,
+            'name' => 'Bank',
+        ]);
+        $bankcm = get_coursemodule_from_instance('qbank', $bank->id, $course->id, null, MUST_EXIST);
+
+        // A page in the same section, so the rendered list is known to be non-empty.
+        $page = $this->getDataGenerator()->create_module('page', [
+            'course' => $course->id,
+            'section' => 0,
+            'name' => 'Visible page',
+            'completion' => COMPLETION_TRACKING_MANUAL,
+        ]);
+
+        $modinfo = get_fast_modinfo($course);
+        $this->assertFalse($modinfo->get_cm($bankcm->id)->is_of_type_that_can_display());
+        $this->assertTrue($modinfo->get_cm($page->cmid)->is_of_type_that_can_display());
+
+        $output = new \format_tiles\output\course_output($course, true);
+        // The CLI renderer has no section_add_cm_controls(), so export against a course renderer.
+        $data = $output->export_for_template($PAGE->get_renderer('core_course'));
+        // The template context holds the ids as strings.
+        $renderedcmids = array_map('intval', array_column($data['section_zero']['content']['course_modules'], 'cmid'));
+        $this->assertContains((int)$page->cmid, $renderedcmids);
+        $this->assertNotContains((int)$bankcm->id, $renderedcmids);
+
+        // Only the tracked page counts, so nothing inflates the section progress.
+        $this->assertSame(1, $output->section_progress(0)['outof']);
+    }
+
+    /**
      * The xs and sm copies of the above tiles controls render unique, matching input ids and labels.
      */
     public function test_above_tiles_control_ids_are_unique(): void {
