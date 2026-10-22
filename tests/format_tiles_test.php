@@ -173,6 +173,31 @@ final class format_tiles_test extends \advanced_testcase {
         }
     }
 
+    /**
+     * Course-level format options are still saved when the course row does not exist yet.
+     *
+     * The format is instantiated from an object rather than via course_get_format(), which reads the course row
+     * with MUST_EXIST and would throw before the code under test runs.
+     */
+    public function test_update_course_format_options_missing_course(): void {
+        global $DB;
+        $this->resetAfterTest();
+
+        // An id that no course row carries: what a course being created (or just deleted) looks like.
+        $fakeid = 999999;
+        $format = \core_courseformat\base::instance((object)['id' => $fakeid, 'format' => 'tiles']);
+        $format->update_course_format_options(['id' => $fakeid, 'courseusesubtiles' => 1]);
+
+        $this->assertSame('1', $DB->get_field('course_format_options', 'value', [
+            'courseid' => $fakeid,
+            'format' => 'tiles',
+            'sectionid' => 0,
+            'name' => 'courseusesubtiles',
+        ]));
+
+        \core_courseformat\base::reset_course_cache($fakeid);
+    }
+
 
     /**
      * Test web service updating section name

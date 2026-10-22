@@ -633,7 +633,7 @@ class format_tiles extends core_courseformat\base {
             }
         }
 
-        if (isset($data['id']) && $data['id']) {
+        if (isset($data['id']) && $data['id'] && $DB->record_exists('course', ['id' => $data['id']])) {
             $courseid = $data['id'];
             $coursecontext = context_course::instance($courseid);
 
