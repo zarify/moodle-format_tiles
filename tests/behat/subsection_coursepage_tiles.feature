@@ -64,6 +64,15 @@ Feature: Users view subsections on course page in tiles format
     And I should not see "Page1 in Subsection1" in the "Subsection2" "activity"
 
   @javascript
+  Scenario: Section and subsection collapse toggles control existing panels
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And format_tiles subtiles are on for course "Course 1"
+    And I click on tile "1"
+    And I wait until the page is ready
+    Then the tiles collapse toggles should control existing panels
+
+  @javascript
   Scenario: Teacher can create activities inside subsections on course page in tiles format
     When I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on

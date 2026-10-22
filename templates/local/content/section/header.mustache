@@ -46,9 +46,10 @@
             <a role="button"
                 data-bs-toggle="collapse"
                 data-for="sectiontoggler"
-           href="#coursecontentcollapse{{num}}"
-           id="collapssesectionid{{num}}"
+           href="#coursecontentcollapseid{{id}}"
+           id="collapsesectionid{{id}}"
            aria-expanded="{{^contentcollapsed}}true{{/contentcollapsed}}{{#contentcollapsed}}false{{/contentcollapsed}}"
+                aria-controls="coursecontentcollapseid{{id}}"
                 class="btn btn-icon me-1 icons-collapse-expand justify-content-center
                {{^editing}} stretched-link {{/editing}}
                {{#contentcollapsed}} collapsed {{/contentcollapsed}}"

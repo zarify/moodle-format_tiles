@@ -231,7 +231,7 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                 contentArea.find('li.modtype_subsection a[data-bs-toggle="collapse"]').on(Event.CLICK, (e) => {
                     const clickedButton = $(e.currentTarget);
                     const subSectionId = clickedButton.data('subSectionId');
-                    const subSectionContent = $('#coursecontentcollapse' + subSectionId);
+                    const subSectionContent = $('#coursecontentcollapseid' + subSectionId);
                     const isCollapsed = subSectionContent && subSectionContent.length && !subSectionContent.hasClass('show');
                     if (isCollapsed && expandedSubSectionIds[subSectionId] === undefined) {
                         // Sub-section is being expanded - record that fact locally.
@@ -629,7 +629,7 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                                     // Need to wait for parent section content before we can expand subsection.
                                     // Not ideal to use a timeout - temporary approach pending wider refactor.
                                     setTimeout(() => {
-                                        const subSectionContent = $('#coursecontentcollapse' + sec.data('id'));
+                                        const subSectionContent = $('#coursecontentcollapseid' + sec.data('id'));
                                         const needsExpanding = subSectionContent && subSectionContent.length
                                             && !subSectionContent.hasClass('show');
                                         if (needsExpanding) {

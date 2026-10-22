@@ -3,11 +3,11 @@
         <a role="button"
            data-bs-toggle="collapse"
            data-for="sectiontoggler"
-           href="#coursecontentcollapse{{secid}}"
-           id="collapssesection{{secid}}"
+           href="#coursecontentcollapseid{{secid}}"
+           id="collapsesectionid{{secid}}"
            data-sub-section-id="{{secid}}"
            aria-expanded="{{^contentcollapsed}}true{{/contentcollapsed}}{{#contentcollapsed}}false{{/contentcollapsed}}"
-           aria-controls="coursecontentcollapse{{num}}"
+           aria-controls="coursecontentcollapseid{{secid}}"
            class="btn btn-icon me-3 icons-collapse-expand justify-content-center{{#contentcollapsed}} collapsed {{/contentcollapsed}}"
            aria-label="{{name}}">
                 <span class="expanded-icon icon-no-margin p-2" title="{{#str}} collapse, core {{/str}}">
@@ -25,7 +25,7 @@
             {{{title}}}
         </h{{headinglevel}}>
     </div>
-    <div id="coursecontentcollapse{{secid}}" class="content course-content-item-content collapse">
+    <div id="coursecontentcollapseid{{secid}}" class="content course-content-item-content collapse">
         {{#availabilitymessage}}
             {{{availabilitymessage}}}
         {{/availabilitymessage}}

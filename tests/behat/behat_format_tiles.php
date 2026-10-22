@@ -303,7 +303,14 @@ class behat_format_tiles extends behat_base {
      * @throws Exception
      */
     public function i_toggle_expand_collapse_section_for_edit($tileumber) {
-        $tileid = behat_context_helper::escape("collapssesectionid" . $tileumber);
+        global $DB;
+        // The toggle id embeds the section id, not the tile number, so resolve it from the course sections.
+        $courseid = $this->get_tiles_current_course_id();
+        $sectionid = $DB->get_field('course_sections', 'id', [
+            'course' => $courseid,
+            'section' => (int)$tileumber,
+        ], MUST_EXIST);
+        $tileid = behat_context_helper::escape("collapsesectionid" . $sectionid);
 
         // Click the tile.
         $this->wait_for_pending_js();
@@ -1218,6 +1225,42 @@ class behat_format_tiles extends behat_base {
         if ($position !== 'fixed') {
             throw new \Behat\Mink\Exception\ExpectationException(
                 "Expected the tiles overlay to be fixed, its position is $position",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check every section toggler points at a panel that exists, and that panel ids are unique.
+     *
+     * @Then /^the tiles collapse toggles should control existing panels$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_collapse_toggles_should_control_existing_panels() {
+        $problems = $this->evaluate_tiles_js('
+            const problems = [];
+            const claimants = {};
+            document.querySelectorAll(\'[id^="coursecontentcollapse"]\').forEach((panel) => {
+                claimants[panel.id] = (claimants[panel.id] || 0) + 1;
+            });
+            Object.keys(claimants).forEach((id) => {
+                if (claimants[id] > 1) {
+                    problems.push(`duplicate panel id ${id} (${claimants[id]}x)`);
+                }
+            });
+            document.querySelectorAll(\'a[data-for="sectiontoggler"]\').forEach((toggle) => {
+                const target = toggle.getAttribute("aria-controls");
+                if (!target) {
+                    problems.push(`toggler ${toggle.id || "(no id)"} has no aria-controls`);
+                } else if (!document.getElementById(target)) {
+                    problems.push(`toggler ${toggle.id || "(no id)"} controls missing panel ${target}`);
+                }
+            });
+            return problems.join("; ");
+        ');
+        if ($problems !== '') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Collapse toggles and panels do not line up: $problems",
                 $this->getSession()
             );
         }
