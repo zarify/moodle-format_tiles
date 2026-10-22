@@ -1212,6 +1212,92 @@ class behat_format_tiles extends behat_base {
     }
 
     /**
+     * Click a course index entry by its visible text.
+     *
+     * @Given /^I click on the course index entry "(?P<name>(?:[^"]|\\")*)"$/
+     * @param string $name
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_click_on_the_course_index_entry($name) {
+        $result = $this->evaluate_tiles_js('
+            const wanted = ' . json_encode($name) . ';
+            const links = Array.from(document.querySelectorAll(
+                "nav#courseindex a.courseindex-link[data-action=\'togglecourseindexsection\']"
+            ));
+            const match = links.find((link) => link.textContent.trim() === wanted);
+            if (!match) {
+                return "missing";
+            }
+            match.click();
+            return "clicked";
+        ');
+        if ($result !== 'clicked') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Could not find a course index entry named '$name'",
+                $this->getSession()
+            );
+        }
+        $this->wait_for_pending_js();
+    }
+
+    /**
+     * Check a tile is open and that a named subsection within it was scrolled to and focused.
+     *
+     * expandSection() opens the tile, then moves the focus into the subsection 300 ms later, once the slide down
+     * and the scroll animation have finished, so this polls for the settled state instead of sampling once.
+     *
+     * @Then /^the tile "(?P<tilenumber>\d+)" should be open and the "(?P<name>(?:[^"]|\\")*)" subsection should have focus$/
+     * @param int $tilenumber
+     * @param string $name
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tile_should_be_open_and_the_subsection_should_have_focus($tilenumber, $name) {
+        $problems = '';
+        for ($attempt = 0; $attempt < 15; $attempt++) {
+            $problems = $this->evaluate_tiles_js('
+                const problems = [];
+                const tile = document.getElementById("tile-' . (int)$tilenumber . '");
+                if (!tile) {
+                    return "tile-' . (int)$tilenumber . ' is missing";
+                }
+                if (!tile.classList.contains("selected")) {
+                    problems.push("tile-' . (int)$tilenumber . ' is not selected");
+                }
+                const wanted = ' . json_encode($name) . ';
+                const titles = Array.from(document.querySelectorAll(\'#region-main [data-for="section_title"]\'))
+                    .filter((title) => title.textContent.trim() === wanted && title.dataset.id);
+                if (!titles.length) {
+                    return `no section title named ${wanted}`;
+                }
+                const panel = document.getElementById("coursecontentcollapseid" + titles[0].dataset.id);
+                if (!panel) {
+                    return `no panel for ${wanted}`;
+                }
+                if (!panel.classList.contains("show")) {
+                    problems.push(`${wanted} is still collapsed`);
+                }
+                const container = panel.closest("li") || panel;
+                const margin = window.getComputedStyle(container).scrollMarginTop;
+                if (!margin || margin === "0px") {
+                    problems.push(`${wanted} has no scroll margin, it is ${margin}`);
+                }
+                if (!container.contains(document.activeElement)) {
+                    problems.push(`${wanted} does not hold the focus`);
+                }
+                return problems.join("; ");
+            ');
+            if ($problems === '') {
+                return;
+            }
+            $this->getSession()->wait(200);
+        }
+        throw new \Behat\Mink\Exception\ExpectationException(
+            "Subsection navigation did not settle: $problems",
+            $this->getSession()
+        );
+    }
+
+    /**
      * Check the tiles overlay is fixed to the viewport.
      *
      * @Then /^the tiles overlay should be fixed to the viewport$/

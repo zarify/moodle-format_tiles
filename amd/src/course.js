@@ -364,8 +364,9 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
          * Expand a content containing section (e.g. on tile click)
          * @param {object} contentArea
          * @param {number} sectionNumber to expand
+         * @param {number|null} subSectionId section id of the subsection to scroll to and focus, if any
          */
-        var expandSection = function (contentArea, sectionNumber) {
+        var expandSection = function (contentArea, sectionNumber, subSectionId = null) {
             const tile = document.getElementById('tile-' + sectionNumber);
 
             /**
@@ -382,13 +383,23 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
             };
 
             var expandAndScroll = function () {
-                // Scroll to the top of content bearing section
+                // Scroll to the top of content bearing section, or to the subsection that was asked for.
                 // We have to wait until possible reOrg and slide down totally before calling this, else co-ords are wrong.
-                tile.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // For users with screen readers, move focus to the first item within the tile.
+                let toScroll = tile;
+                let toFocus = contentArea;
+                if (subSectionId) {
+                    const panel = document.getElementById('coursecontentcollapseid' + subSectionId);
+                    const container = panel ? (panel.closest('li') || panel) : null;
+                    if (container) {
+                        toScroll = toFocus = container;
+                    }
+                }
+                $(toScroll).css({'scroll-margin-top': $('#page').offset()?.top ?? 'var(--navbar-height)'});
+                toScroll.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // For users with screen readers, move focus to the first item within the tile or subsection.
                 // Short timeout for this to allow for animation to finish.
                 setTimeout(() => {
-                    contentArea.find(Selector.FOCUSABLE_ELEMS).eq(0).focus();
+                    $(toFocus).find(Selector.FOCUSABLE_ELEMS).eq(0).focus();
                 }, 300);
 
                 openTile = sectionNumber;
@@ -418,15 +429,38 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                 }
             };
 
+            // A subsection inside the tile that is already open must not close and reopen it: setOverlayHeight()
+            // leaves the content area hidden for the slide down, so it may only run when the tile is changing.
+            const alreadyOpen = openTile === sectionNumber;
+            if (subSectionId) {
+                // Open the subsection before measuring, so the overlay covers it and the scroll target is settled.
+                const panel = document.getElementById('coursecontentcollapseid' + subSectionId);
+                if (panel) {
+                    const toggler = panel.closest('li')?.querySelector('a[data-for="sectiontoggler"]')
+                        || document.querySelector(`a[aria-controls="coursecontentcollapseid${subSectionId}"]`);
+                    expandedSubSectionIds[subSectionId] = true;
+                    $(panel).addClass('show').addClass('collapse').removeClass('collapsing').css('height', '');
+                    if (toggler) {
+                        toggler.classList.remove('collapsed');
+                        toggler.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            }
             contentArea.addClass(ClassNames.STATE_VISIBLE);
-            setOverlayHeight();
-            overlay.fadeIn(300);
+            if (!alreadyOpen) {
+                setOverlayHeight();
+                overlay.fadeIn(300);
+            }
             tile.classList.add(ClassNames.SELECTED);
             $(Selector.BODY).addClass(ClassNames.HAS_OPEN_TILE);
-            contentArea.slideDown(350, function () {
-                // Wait until we have finished sliding down before we work out where the top is for scroll.
+            if (alreadyOpen) {
                 expandAndScroll();
-            });
+            } else {
+                contentArea.slideDown(350, function () {
+                    // Wait until we have finished sliding down before we work out where the top is for scroll.
+                    expandAndScroll();
+                });
+            }
             openTile = sectionNumber;
         };
 
@@ -545,15 +579,15 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
          * @param {number} courseContextId course context id of this course.
          * @param {number} sectionId section Id for the clicked section.
          * @param {number} sectionNumber the section number of the tile.
+         * @param {number|null} subSectionId section id of a subsection within the tile to scroll to and focus.
          */
-        var populateAndExpandSection = function(courseContextId, sectionId, sectionNumber) {
-            $(Selector.TILE).removeClass(ClassNames.SELECTED);
-            openTile = sectionNumber;
-            // Then close all open secs.
+        var populateAndExpandSection = function(courseContextId, sectionId, sectionNumber, subSectionId = null) {
+            $(Selector.TILE).not('#tile-' + sectionNumber).removeClass(ClassNames.SELECTED);
+            // Then close all open secs, other than the one we are opening.
             // Timed to finish in 200 so that it completes well before the opening next.
             $(Selector.MOVEABLE_SECTION).each(function (index, sec) {
                 sec = $(sec);
-                if (sec.is(":visible")) {
+                if (sec.is(":visible") && sec.data('section') != sectionNumber) {
                     stopVideoPlaying(sec.data("section"), sec.data("sectionid"));
                     sec.slideUp(200).removeClass(ClassNames.STATE_VISIBLE); // Excludes section 0.
                 }
@@ -570,21 +604,25 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
             var relatedContentArea = $(Selector.SECTION_ID + sectionNumber);
             if (relatedContentArea.find(Selector.ACTIVITY).length > 0) {
                 // There is already some content on the screen so display immediately.
-                expandSection(relatedContentArea, sectionNumber);
+                expandSection(relatedContentArea, sectionNumber, subSectionId);
 
                 // Still contact the server in case content has changed (e.g. restrictions now satisfied).
-                getSectionContentFromServer(courseContextId, sectionId).done(function (html, js) {
-                    setCourseContentHTML(relatedContentArea, html, js);
-                }).fail(function (failResult) {
-                    failedLoadSectionNotify(sectionNumber, failResult, relatedContentArea);
-                    cancelTileSelections(sectionNumber);
-                });
+                // Not when a subsection was picked from the course index though: replacing the content would
+                // throw away the subsection the user just asked for, along with the focus we moved into it.
+                if (!subSectionId) {
+                    getSectionContentFromServer(courseContextId, sectionId).done(function (html, js) {
+                        setCourseContentHTML(relatedContentArea, html, js);
+                    }).fail(function (failResult) {
+                        failedLoadSectionNotify(sectionNumber, failResult, relatedContentArea);
+                        cancelTileSelections(sectionNumber);
+                    });
+                }
             } else {
                 relatedContentArea.html(loadingIconHtml);
                 // Get from server.
                 getSectionContentFromServer(courseContextId, sectionId).done(function (html, js) {
                     setCourseContentHTML(relatedContentArea, html, js);
-                    expandSection(relatedContentArea, sectionNumber);
+                    expandSection(relatedContentArea, sectionNumber, subSectionId);
                 }).fail(function (failResult) {
                     failedLoadSectionNotify(sectionNumber, failResult, relatedContentArea);
                     cancelTileSelections(sectionNumber);
@@ -618,25 +656,19 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                         if (sec && sectionNumber !== undefined) {
                             e.preventDefault();
                             if (sectionNumber === 0) {
+                                window.scrollTo({top: 0});
                                 cancelTileSelections(0);
                             } else {
                                 const subSectionParent = sec.parent().closest('.courseindex-section');
                                 if (subSectionParent && subSectionParent.length) {
-                                    // A subsection has been clicked - need to expand parent, then the subsection.
+                                    // A subsection has been clicked - expand the parent tile, then scroll to the subsection.
+                                    // setCourseContentHTML() re-expands any entries recorded in expandedSubSectionIds
+                                    // once the parent content arrives, so record the subsection before asking for it.
+                                    expandedSubSectionIds[sec.data('id')] = true;
                                     populateAndExpandSection(
-                                        courseContextId, subSectionParent.data('id'), subSectionParent.data('number')
+                                        courseContextId, subSectionParent.data('id'),
+                                        subSectionParent.data('number'), sec.data('id')
                                     );
-                                    // Need to wait for parent section content before we can expand subsection.
-                                    // Not ideal to use a timeout - temporary approach pending wider refactor.
-                                    setTimeout(() => {
-                                        const subSectionContent = $('#coursecontentcollapseid' + sec.data('id'));
-                                        const needsExpanding = subSectionContent && subSectionContent.length
-                                            && !subSectionContent.hasClass('show');
-                                        if (needsExpanding) {
-                                            subSectionContent.collapse('show');
-                                            expandedSubSectionIds[sec.data('id')] = true;
-                                        }
-                                    }, 1000);
                                 } else {
                                     populateAndExpandSection(courseContextId, sec.data('id'), sectionNumber);
                                 }
@@ -1053,8 +1085,8 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                     }
                 });
             },
-            populateAndExpandSection(courseContextId, sectionId, sectionNumber) {
-                populateAndExpandSection(courseContextId, sectionId, sectionNumber);
+            populateAndExpandSection(courseContextId, sectionId, sectionNumber, subSectionId = null) {
+                populateAndExpandSection(courseContextId, sectionId, sectionNumber, subSectionId);
             }
         };
     }

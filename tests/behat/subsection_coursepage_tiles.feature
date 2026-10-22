@@ -73,6 +73,32 @@ Feature: Users view subsections on course page in tiles format
     Then the tiles collapse toggles should control existing panels
 
   @javascript
+  Scenario: Course index subsection link opens the subsection inside its parent tile
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And format_tiles subtiles are on for course "Course 1"
+    And I set the tiles page-sentinel
+    And I click on tile "1"
+    And I wait until the page is ready
+    And I click on "Expand" "link" in the "Subsection1" "activity"
+    When I click on the course index entry "Subsection2"
+    Then I should see "Page2 in Subsection2" in the "Subsection2" "activity"
+    And the tiles page-sentinel should still be set
+    And the tile "1" should be open and the "Subsection2" subsection should have focus
+
+  @javascript
+  Scenario: Course index subsection link opens the subsection on a small screen
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And format_tiles subtiles are on for course "Course 1"
+    And I change window size to "mobile"
+    And I set the tiles page-sentinel
+    And I click on the course index entry "Subsection2"
+    Then I should see "Page2 in Subsection2" in the "Subsection2" "activity"
+    And the tiles page-sentinel should still be set
+    And the tile "1" should be open and the "Subsection2" subsection should have focus
+
+  @javascript
   Scenario: Teacher can create activities inside subsections on course page in tiles format
     When I log in as "teacher1"
     And I am on "Course 1" course homepage with editing mode on
