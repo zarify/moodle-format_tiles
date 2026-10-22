@@ -6,8 +6,8 @@ Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records
 
 | Suite | Files | Cases |
 |---|---|---|
-| PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (8 files) | 74 methods (87 cases with data sets) |
-| Behat | `tests/behat/*.feature` (31 features) | 75 scenarios, `@format_tiles` |
+| PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (8 files) | 76 methods (89 cases with data sets) |
+| Behat | `tests/behat/*.feature` (32 features) | 79 scenarios, `@format_tiles` |
 
 ## (1) Deprecated-API removal / Moodle 6 uplift
 
@@ -34,6 +34,11 @@ Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records
 | 8531a5a modal lifecycle (single modal, icon picker guard, focus restore, width guard, no full-width toggle) | `amd/src/course_mod_modal.js:233-260`, `amd/src/edit_icon_picker.js:395-415` | `tests/behat/modal_lifecycle.feature` |
 | 3e0f0c9 icon picker during course creation | `amd/src/edit_icon_picker.js:180-200`, `lib.php:571` | `tests/behat/course_create_course.feature` (icon picker scenario) |
 | b3af1c4 tile overlay stays fixed | `templates/multi_section_page.mustache:117` | `tests/behat/javascript_nav.feature` (`the tiles overlay should be fixed to the viewport`) |
+| cc514de course-context guard in `update_course_format_options()` | `lib.php:636` | `tests/format_tiles_test.php::test_update_course_format_options_missing_course` |
+| 3b24c6e collapse panel ids keyed on the section id, `aria-controls` matches the panel | `templates/course_modules_subsection.mustache`, `templates/local/content/section/header.mustache`, `templates/local/content/section/content.mustache`, `amd/src/course.js:234,632` | `tests/behat/subsection_coursepage_tiles.feature` (`the tiles collapse toggles should control existing panels`); `section_visibility.feature` clicks the renamed toggler |
+| 5b4257f course index subsection click opens, scrolls to and focuses the subsection | `amd/src/course.js` (`expandSection`, `populateAndExpandSection`, `initCourseIndexWatcher`) | `tests/behat/subsection_coursepage_tiles.feature` (two `Course index subsection link…` scenarios, desktop and small screen) |
+| 764dd1e mobile activity padding rule matches the course view | `styles.css:2138` | `tests/behat/mobile_activity_padding.feature` |
+| 8f72042 non-displayable modules (qbank) excluded from the tile activity list and progress | `classes/output/course_output.php:862-882` | `tests/format_tiles_test.php::test_non_displayable_module_is_not_rendered` |
 
 ## (3) Upgrade migrations / changeover
 
@@ -63,7 +68,7 @@ Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records
 | Wrong string component in delete assertion | `tests/behat/behat_format_tiles.php:648` | fixed (`core_courseformat`) |
 | Student/teacher scenario title mismatch | `tests/behat/pdf_modal_student.feature:67,122` | fixed |
 | Renderer section-title overrides | `classes/output/renderer.php` | backlog |
-| Full `course_output::export_for_template` render sweep | `classes/output/course_output.php` | backlog (Behat covers the tile grid) |
+| Full `course_output::export_for_template` render sweep | `classes/output/course_output.php` | backlog — `tests/format_tiles_test.php::test_non_displayable_module_is_not_rendered` renders the section-zero context end to end; the rest is covered by Behat |
 
 ## (5) Regressions from the new APIs
 
