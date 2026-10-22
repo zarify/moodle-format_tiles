@@ -91,7 +91,7 @@ Feature: Progress indicators can be used to change progress status and changes a
 
 #    And I click format tiles progress indicator for "Test page 1b"
     And I toggle the manual completion state of "Test page 1b"
-    Then format_tiles progress for "page" called "Test page 2b" in "Course 1" is "0" in the database
+    Then format_tiles progress for "page" called "Test page 1b" in "Course 1" is "0" in the database
     And I wait until the page is ready
     And format_tiles progress indicator for tile "1" is "0" out of "2"
 

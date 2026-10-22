@@ -783,3 +783,15 @@ Other
 - Keep the tile overlay fixed over the whole page
 - Show the above-tiles controls as core toggle switches
 - Fix the icon picker during course creation
+
+5.2.2 (2026102201)
+==================
+- Raise the install floor to Moodle 5.3 ($plugin->requires = 2026100500) so the formatactions APIs in use are guaranteed
+- Dispatch the section highlight/unhighlight menu action reactively instead of reloading the course page
+  (new format_tiles/mutations and format_tiles/section AMD modules)
+- Queue legacy data migrations during the 2024020200 upgrade only for courses with tiles options
+- Add PHPUnit coverage for the highlight state actions, section control menu, upgrade steps, privacy provider,
+  attribute escaping, above-tiles controls, pluginfile guards and section limits
+- Add Behat coverage for section highlighting, above-tiles controls, modal lifecycle, URL modals and the icon picker
+  during course creation; repair stale and unreachable tests
+- Publish the test coverage analysis in tests/COVERAGE.md

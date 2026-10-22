@@ -1,4 +1,4 @@
-@format2 @format_tiles @format_tiles_subsection
+@format @format_tiles @format_tiles_subsection
 Feature: Users view subsections on course page in tiles format
   In order to use subsections
   As an user

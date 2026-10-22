@@ -122,26 +122,46 @@ final class format_tiles_externallib_test extends \externallib_advanced_testcase
             $newicon,
             'tileicon'
         );
+    }
 
-        // Student not allowed to do it.
-        $student1 = self::getDataGenerator()->create_user();
-        $studentrole = $DB->get_record('role', ['shortname' => 'student']);
-        $this->getDataGenerator()->enrol_user(
-            $student1->id,
+    /**
+     * A student and a guest must not be able to set a tile image.
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \moodle_exception
+     */
+    public function test_set_image_rejects_student_and_guest(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions);
+        $sectionid = get_fast_modinfo($course)->get_section_info_all()[1]->id;
+
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $this->setUser($student);
+        try {
+            \format_tiles\external\external::set_image($course->id, $sectionid, 'number_1', 'tileicon');
+            $this->fail('Expected a required_capability_exception for a student');
+        } catch (\required_capability_exception $e) {
+            $this->assertSame('nopermissions', $e->errorcode);
+        }
+        $this->assertEmpty(\format_tiles\local\format_option::get(
             $course->id,
-            $studentrole->id
-        );
-        $this->setUser($student1);
-        $this->expectException('required_capability_exception');
-        $result = \format_tiles\external\external::set_image($course->id, $sectionid, $newicon, 'tileicon');
-        $result = \core_external\external_api::clean_returnvalue(\format_tiles\external\external::set_image_returns(), $result);
+            \format_tiles\local\format_option::OPTION_SECTION_ICON,
+            $sectionid
+        ));
 
-        // Fail when the user is not allow to access the course (enrolled) or is not teacher.
         $this->setGuestUser();
-        $this->expectException('required_capability_exception');
-
-        $result = \format_tiles\external\external::set_image($course->id, $sectionid, $newicon, 'tileicon');
-        $result = \core_external\external_api::clean_returnvalue(\format_tiles\external\external::set_image_returns(), $result);
+        try {
+            \format_tiles\external\external::set_image($course->id, $sectionid, 'number_1', 'tileicon');
+            $this->fail('Expected a require_login_exception for a guest');
+        } catch (\require_login_exception $e) {
+            $this->assertSame('requireloginerror', $e->errorcode);
+        }
+        $this->assertEmpty(\format_tiles\local\format_option::get(
+            $course->id,
+            \format_tiles\local\format_option::OPTION_SECTION_ICON,
+            $sectionid
+        ));
     }
 
     /**

@@ -44,6 +44,8 @@ require_once($CFG->dirroot . '/course/lib.php');
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_modal_allowed_cm_ids')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'cm_modal_type')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\output\course_output::class, 'section_progress')]
+#[\PHPUnit\Framework\Attributes\CoversFunction('format_tiles_pluginfile')]
+#[\PHPUnit\Framework\Attributes\CoversClass(\format_tiles\local\course_section_manager::class)]
 final class format_tiles_test extends \advanced_testcase {
     /**
      * The format options to use when setting up a course in tiles format.
@@ -578,5 +580,280 @@ final class format_tiles_test extends \advanced_testcase {
         [$course, $output] = $this->create_course_with_subsection();
         set_config('progressincludesubsections', 0, 'format_tiles');
         $this->assertSame(['completed' => 1, 'outof' => 1], $output->section_progress(1));
+    }
+
+    /**
+     * Activity names are author controlled and must be escaped when rendered into HTML attributes.
+     */
+    public function test_activity_name_is_escaped_in_html_attributes(): void {
+        global $OUTPUT;
+        $name = 'Sam\'s "quoted" <b>bold</b>';
+        $templates = [
+            'format_tiles/course_module' => [
+                'cmid' => 1,
+                'modname' => 'page',
+                'activityname' => $name,
+                'useSubtiles' => 1,
+                'clickable' => 1,
+                'url' => '#',
+            ],
+            'format_tiles/local/content/section/cmitem' => [
+                'cmid' => 1,
+                'modname' => 'page',
+                'activityname' => $name,
+            ],
+            'format_tiles/local/content/cm/activity' => [
+                'cmid' => 1,
+                'modinstance' => 1,
+                'activityname' => $name,
+                'clickable' => 1,
+                'hasname' => 0,
+            ],
+        ];
+        foreach ($templates as $template => $context) {
+            $html = $OUTPUT->render_from_template($template, $context);
+            preg_match_all('~data-title="([^"]*)"~', $html, $matches);
+            $this->assertNotEmpty($matches[1], "No data-title attribute rendered by $template");
+            foreach ($matches[1] as $value) {
+                $this->assertStringContainsString('&lt;b&gt;', $value, "data-title not escaped in $template");
+                $this->assertStringNotContainsString('<', $value, "Raw < in data-title in $template");
+                $this->assertStringNotContainsString('>', $value, "Raw > in data-title in $template");
+                $this->assertStringNotContainsString('"', $value, "Raw quote in data-title in $template");
+            }
+        }
+    }
+
+    /**
+     * The inline folder warning sanitises the author controlled folder name.
+     */
+    public function test_inline_folder_warning_escapes_folder_name(): void {
+        global $CFG, $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        require_once($CFG->dirroot . '/mod/folder/lib.php');
+
+        $course = $this->getDataGenerator()->create_course(['format' => 'tiles']);
+        $folder = $this->getDataGenerator()->create_module('folder', [
+            'course' => $course->id,
+            'name' => 'folder',
+            'display' => FOLDER_DISPLAY_INLINE,
+        ]);
+        // The generator cleans the name, so set the author controlled markup directly.
+        $DB->set_field('folder', 'name', 'A "quoted" <b>folder</b>', ['id' => $folder->id]);
+
+        $content = new \format_tiles\output\courseformat\content(course_get_format($course->id));
+        $method = new \ReflectionMethod(\format_tiles\output\courseformat\content::class, 'get_inline_folder_warning');
+        $warning = $method->invoke($content, $course->id);
+
+        $this->assertNotEmpty($warning);
+        $this->assertStringNotContainsString('<b>', $warning);
+        $this->assertStringContainsString('A "quoted" folder', $warning);
+    }
+
+    /**
+     * The filter button escapes its author controlled title.
+     */
+    public function test_filter_button_escapes_outcome_title(): void {
+        global $OUTPUT;
+        $html = $OUTPUT->render_from_template('format_tiles/filterbutton', [
+            'id' => 'filterbutton1',
+            'buttonnum' => 1,
+            'sections' => '1,2',
+            'title' => '<b>Lit</b>',
+        ]);
+
+        $this->assertStringContainsString('&lt;b&gt;Lit&lt;/b&gt;', $html);
+        $this->assertStringNotContainsString('<b>Lit</b>', $html);
+    }
+
+    /**
+     * The above tiles controls export the expected ids and toggle URLs.
+     */
+    public function test_above_tiles_controls_export(): void {
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('highcontrastmodeallow', 1, 'format_tiles');
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions, ['createsections' => true]);
+        $output = new \format_tiles\output\course_output($course, true);
+        $controls = $output->get_above_tiles_controls(true, false);
+
+        $this->assertCount(2, $controls);
+        $this->assertSame('format-tiles-control-animatednav', $controls[0]['id']);
+        $this->assertSame('format-tiles-control-highcontrast', $controls[1]['id']);
+        $this->assertSame('data-format-tiles-control-url', $controls[0]['extraattributes']['name']);
+        $this->assertStringContainsString(
+            'format-tiles-action=toggleanimatednav',
+            $controls[0]['extraattributes']['value']
+        );
+        $this->assertStringContainsString('sesskey=' . sesskey(), $controls[0]['extraattributes']['value']);
+        $this->assertSame('data-format-tiles-control-url', $controls[1]['extraattributes']['name']);
+        $this->assertStringContainsString(
+            'format-tiles-action=togglehighcontrast',
+            $controls[1]['extraattributes']['value']
+        );
+        $this->assertStringContainsString('sesskey=' . sesskey(), $controls[1]['extraattributes']['value']);
+        $this->assertFalse($controls[0]['checked']);
+    }
+
+    /**
+     * The xs and sm copies of the above tiles controls render unique, matching input ids and labels.
+     */
+    public function test_above_tiles_control_ids_are_unique(): void {
+        global $OUTPUT;
+        $controls = [];
+        foreach (['animatednav', 'highcontrast'] as $name) {
+            $controls[] = [
+                'id' => 'format-tiles-control-' . $name,
+                'label' => $name,
+                'checked' => false,
+            ];
+        }
+
+        // The xs and sm copies are rendered by the parent template with their own idsuffix override.
+        $html = $OUTPUT->render_from_template('format_tiles/above_tiles', [
+            'is_single_section' => false,
+            'section_zero_show' => true,
+            'editing' => false,
+            'usingjsnav' => false,
+            'has_filter_buttons' => false,
+            'hasabovetilescontrols' => true,
+            'abovetilescontrols' => $controls,
+        ]);
+
+        preg_match_all('~id="(format-tiles-control-[^"]+)"~', $html, $idmatches);
+        $ids = $idmatches[1];
+        $this->assertCount(4, $ids);
+        $this->assertCount(4, array_unique($ids));
+        foreach ($ids as $id) {
+            $this->assertMatchesRegularExpression(
+                '/^format-tiles-control-(animatednav|highcontrast)-(xs|sm)$/',
+                $id
+            );
+        }
+
+        preg_match_all('~<label[^>]*for="([^"]+)"~', $html, $labelmatches);
+        $this->assertSame($ids, $labelmatches[1]);
+    }
+
+    /**
+     * The edit buttons use the core editsection string, which exists in every supported Moodle version.
+     */
+    public function test_edit_button_uses_existing_core_string(): void {
+        global $CFG, $OUTPUT;
+        $expectedtitle = get_string('editsection', 'core');
+        $config = ['wwwroot' => $CFG->wwwroot];
+
+        $sectionzerotml = $OUTPUT->render_from_template('format_tiles/section_zero', [
+            'section_zero_show' => true,
+            'section_zero' => [
+                'secid' => 1,
+                'tileid' => 0,
+                'editing' => true,
+                'title' => '',
+                'summary' => '',
+            ],
+            'config' => $config,
+        ]);
+        $singlesectiontml = $OUTPUT->render_from_template('format_tiles/single_section_content', [
+            'hidden_section' => false,
+            'visible' => true,
+            'editing' => true,
+            'canedit' => true,
+            'secid' => 1,
+            'tileid' => 1,
+            'useSubtiles' => 0,
+            'config' => $config,
+        ]);
+
+        foreach (['section_zero' => $sectionzerotml, 'single_section_content' => $singlesectiontml] as $template => $html) {
+            $this->assertStringContainsString('title="' . $expectedtitle . '"', $html, $template);
+            $this->assertStringNotContainsString('[[', $html, "Unresolved string marker in $template");
+        }
+    }
+
+    /**
+     * The pluginfile callback rejects requests it does not serve.
+     */
+    public function test_pluginfile_rejects_wrong_requests(): void {
+        global $CFG, $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        require_once($CFG->dirroot . '/course/format/tiles/tests/helperlib.php');
+
+        // A non-tiles course is enough: the callback serves files from the course context, and the tiles
+        // format option loading would initialise the theme, which blocks require_login() in PHPUnit.
+        $course = $this->getDataGenerator()->create_course();
+        helper_set_legacy_tilephoto($course->id, 1, 'placeholder_1.jpg');
+        $sectionid = $DB->get_field('course_sections', 'id', ['course' => $course->id, 'section' => 1]);
+        $context = \context_course::instance($course->id);
+        $usercontext = \context_user::instance(get_admin()->id);
+
+        // send_file_not_found() calls header(), which warns under CLI once PHPUnit has printed output.
+        // Silence only that CLI-only warning; every other error still reaches the PHPUnit handler.
+        set_error_handler(static function (int $errno, string $errstr): bool {
+            return str_contains($errstr, 'Cannot modify header information');
+        });
+        try {
+            // An unknown file area.
+            try {
+                \format_tiles_pluginfile(
+                    $course,
+                    null,
+                    $context,
+                    'otherarea',
+                    [$sectionid, 'tilephoto', 'placeholder_1.jpg'],
+                    false
+                );
+                $this->fail('Expected a moodle_exception for an unknown file area');
+            } catch (\moodle_exception $e) {
+                $this->assertSame('filenotfound', $e->errorcode);
+            }
+            $this->assertDebuggingCalled('Invalid file area otherarea', DEBUG_DEVELOPER);
+
+            // A context level which is not whitelisted.
+            try {
+                \format_tiles_pluginfile(
+                    $course,
+                    null,
+                    $usercontext,
+                    'tilephoto',
+                    [$sectionid, 'tilephoto', 'placeholder_1.jpg'],
+                    false
+                );
+                $this->fail('Expected a moodle_exception for a non-whitelisted context level');
+            } catch (\moodle_exception $e) {
+                $this->assertSame('filenotfound', $e->errorcode);
+            }
+
+            // A file name which does not match the stored file.
+            try {
+                \format_tiles_pluginfile(
+                    $course,
+                    null,
+                    $context,
+                    'tilephoto',
+                    [$sectionid, 'tilephoto', 'missing.jpg'],
+                    false
+                );
+                $this->fail('Expected a moodle_exception for a missing file');
+            } catch (\moodle_exception $e) {
+                $this->assertSame('filenotfound', $e->errorcode, $e->getMessage());
+            }
+        } finally {
+            restore_error_handler();
+        }
+    }
+
+    /**
+     * The maximum sections value respects the admin setting and its documented fallback.
+     */
+    public function test_get_max_sections_respects_config_and_fallback(): void {
+        $this->resetAfterTest();
+        set_config('maxsections', 20, 'moodlecourse');
+        $this->assertSame(20, \format_tiles\local\course_section_manager::get_max_sections());
+
+        unset_config('maxsections', 'moodlecourse');
+        $this->assertSame(52, \format_tiles\local\course_section_manager::get_max_sections());
     }
 }

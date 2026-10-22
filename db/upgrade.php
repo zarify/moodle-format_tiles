@@ -206,7 +206,7 @@ function xmldb_format_tiles_upgrade($oldversion) {
             // We use an adhoc task to pass this to cron as it may take a long time during the upgrade if lots of courses/data.
             $legacycourses = $DB->get_fieldset_sql(
                 "SELECT DISTINCT courseid from {course_format_options}
-                WHERE format = 'tiles' AND name = 'tilephoto' OR name = 'tileicon' ORDER BY courseid"
+                WHERE format = 'tiles' AND name IN ('tilephoto', 'tileicon') ORDER BY courseid"
             );
             foreach ($legacycourses as $courseid) {
                 $task = new \format_tiles\task\migrate_legacy_data();

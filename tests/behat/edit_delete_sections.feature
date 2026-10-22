@@ -77,28 +77,3 @@ Feature: Sections can be edited and deleted in tiles format
     And I am on "Edit Delete Secs Course" course homepage
     Then I should not see "Tile 5"
     And I should see "Tile 4"
-
-  @javascript
-  Scenario: Adding sections in tiles format
-#    Increase by 1 tile
-#    And I wait "1" seconds
-#    And I follow "Add tiles"
-#    And I wait until the page is ready
-#    And I wait "1" seconds
-#    Then the field "Number of sections" matches value "1"
-#    And I press "Add tiles"
-#    And I should see "Tile 6" in the "li#section-6" "css_element"
-#    And "li#section-7" "css_element" should not exist
-#todo fix this test - not working as menu item at bottom of course now says add tiles too
-
-#    Increase by 3 more tiles
-#    And I follow "Add tiles"
-#    And I wait until the page is ready
-#    And I wait "1" seconds
-#    And I set the field "Number of sections" to "3"
-#    And I press "Add tiles"
-#    And I wait until the page is ready
-#    And I should see "Tile 7" in the "li#section-7" "css_element"
-#    And I should see "Tile 8" in the "li#section-8" "css_element"
-#    And I should see "Tile 9" in the "li#section-9" "css_element"
-#    And "li#section-10" "css_element" should not exist

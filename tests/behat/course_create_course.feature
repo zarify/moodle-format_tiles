@@ -39,3 +39,24 @@ Feature: Create course in format tiles
     And I log in as "teacher1"
     And I am on "Create Course Test Course" course homepage with editing mode on
     And I log out tiles
+
+  @javascript
+  Scenario: Choose the default tile icon with the icon picker while creating a course
+    When I log in as "admin"
+    And I navigate to "Courses > Add a new course" in site administration
+    And I set the field "Course full name" to "Create Course Icon Course"
+    And I set the field "Course short name" to "C2"
+    And I expand all fieldsets
+    And I set the field "Format" to "Tiles"
+    And I wait until the page is ready
+    And I wait "2" seconds
+    And I click on "#launchiconpicker" "css_element"
+    And I wait until the page is ready
+    And I wait "2" seconds
+    And I click on "button.pickericon[title=\"Star (shaded)\"]" "css_element" in the "#icon_picker_modal" "css_element"
+    And I wait until the page is ready
+    And the tiles default icon field should hold "star"
+    And I press "Save and display"
+    And I wait until the page is ready
+    And I should see "Create Course Icon Course"
+    And Tile "1" should have icon "star"

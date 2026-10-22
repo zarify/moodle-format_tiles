@@ -645,7 +645,7 @@ class behat_format_tiles extends behat_base {
         $moodlerelease = \format_tiles\local\util::get_moodle_release();
         $expectedstring = $moodlerelease < 4.2
             ? get_string('confirmdeletesection', 'moodle', $sectionname)
-            : get_string('sectiondelete_info', 'courseformat', (object)['name' => $sectionname]);
+            : get_string('sectiondelete_info', 'core_courseformat', (object)['name' => $sectionname]);
 
         $this->execute('behat_general::assert_page_contains_text', [$expectedstring]);
         return true;
@@ -670,5 +670,556 @@ class behat_format_tiles extends behat_base {
             : "1";
         $behatforms = behat_context_helper::get('behat_forms');
         $behatforms->i_set_the_field_to($field, $value);
+    }
+
+    /**
+     * Get the id of the course currently being viewed.
+     *
+     * @return int
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function get_tiles_current_course_id(): int {
+        $url = $this->getSession()->getCurrentUrl();
+        $query = parse_url($url, PHP_URL_QUERY);
+        parse_str($query ?? '', $params);
+        if (empty($params['id'])) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Could not determine the course from the current URL $url",
+                $this->getSession()
+            );
+        }
+        return (int)$params['id'];
+    }
+
+    /**
+     * Evaluate a multi-statement script body in the page, returning its value.
+     *
+     * The Mink driver only prefixes "return " to the whole script, so a multi-statement
+     * body must be wrapped in an immediately invoked function.
+     *
+     * @param string $body JavaScript statements ending with a return.
+     * @return mixed
+     */
+    private function evaluate_tiles_js(string $body) {
+        return $this->evaluate_script('return (() => {' . $body . '})();');
+    }
+
+    /**
+     * Open the section actions menu for the given tile and return its xpath.
+     *
+     * @param int $sectionnumber
+     * @return string
+     * @throws \Behat\Mink\Exception\ElementNotFoundException
+     */
+    private function open_tile_section_actions($sectionnumber): string {
+        // Close any dropdown left open by a previous step, otherwise it can cover the toggle.
+        $this->execute_script('document.body.click();');
+        $this->getSession()->wait(200);
+        $xpath = $this->tile_exists($sectionnumber);
+        $menuxpath = $xpath
+            . "/descendant::div[contains(@class, 'section-actions')]/descendant::a[contains(@data-bs-toggle, 'dropdown')]";
+        $exception = new \Behat\Mink\Exception\ElementNotFoundException(
+            $this->getSession(),
+            "Tile $sectionnumber section actions menu"
+        );
+        $menu = $this->find('xpath', $menuxpath, $exception);
+        $menu->click();
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(500);
+        return $xpath;
+    }
+
+    /**
+     * Click the highlight/unhighlight action in the given tile's section menu.
+     *
+     * @param int $sectionnumber
+     * @throws \Behat\Mink\Exception\ElementNotFoundException
+     */
+    private function click_tile_highlight_action($sectionnumber): void {
+        $xpath = $this->open_tile_section_actions($sectionnumber);
+        $linkxpath = $xpath . "/descendant::a[contains(@class, 'editing_highlight')]";
+        $exception = new \Behat\Mink\Exception\ElementNotFoundException(
+            $this->getSession(),
+            "Tile $sectionnumber highlight menu action"
+        );
+        $this->find('xpath', $linkxpath, $exception)->click();
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+    }
+
+    /**
+     * Click the highlight action in a tile's section menu. You need to be on the course page in editing mode.
+     *
+     * @Given /^I highlight tile "(?P<section_number>\d+)"$/
+     * @param int $sectionnumber
+     */
+    public function i_highlight_tile($sectionnumber) {
+        $this->click_tile_highlight_action($sectionnumber);
+    }
+
+    /**
+     * Click the unhighlight action in a tile's section menu. You need to be on the course page in editing mode.
+     *
+     * @Given /^I unhighlight tile "(?P<section_number>\d+)"$/
+     * @param int $sectionnumber
+     */
+    public function i_unhighlight_tile($sectionnumber) {
+        $this->click_tile_highlight_action($sectionnumber);
+    }
+
+    /**
+     * Checks the course marker points at the given tile.
+     *
+     * @Then /^tile "(?P<section_number>\d+)" should be the highlighted section$/
+     * @param int $sectionnumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function tile_should_be_the_highlighted_section($sectionnumber) {
+        global $DB;
+        $courseid = $this->get_tiles_current_course_id();
+        $marker = (int)$DB->get_field('course', 'marker', ['id' => $courseid], MUST_EXIST);
+        if ($marker !== (int)$sectionnumber) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected tile $sectionnumber to be highlighted, but the course marker is $marker",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Checks the course marker does not point at the given tile.
+     *
+     * @Then /^tile "(?P<section_number>\d+)" should not be the highlighted section$/
+     * @param int $sectionnumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function tile_should_not_be_the_highlighted_section($sectionnumber) {
+        global $DB;
+        $courseid = $this->get_tiles_current_course_id();
+        $marker = (int)$DB->get_field('course', 'marker', ['id' => $courseid], MUST_EXIST);
+        if ($marker === (int)$sectionnumber) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected tile $sectionnumber not to be highlighted, but the course marker is $marker",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Set a window variable which a later step uses to prove the page did not navigate.
+     *
+     * @Given /^I set the tiles page-sentinel$/
+     */
+    public function i_set_the_tiles_page_sentinel() {
+        $this->execute_script('window.__tilesPageSentinel = 1;');
+    }
+
+    /**
+     * Check the page sentinel is still set. A full page navigation clears it.
+     *
+     * @Then /^the tiles page-sentinel should still be set$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_page_sentinel_should_still_be_set() {
+        $this->wait_for_pending_js();
+        $sentinel = $this->evaluate_script('return window.__tilesPageSentinel || 0;');
+        if (empty($sentinel)) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'The course page was reloaded, so the highlight action was not dispatched reactively',
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the text of the highlight menu action for a tile.
+     *
+     * @Then /^the tile "(?P<section_number>\d+)" menu action should now read "(?P<expected>(?:[^"]|\\")*)"$/
+     * @param int $sectionnumber
+     * @param string $expected
+     * @throws \Behat\Mink\Exception\ElementNotFoundException
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function tile_menu_action_should_now_read($sectionnumber, $expected) {
+        $xpath = $this->open_tile_section_actions($sectionnumber);
+        $linkxpath = $xpath . "/descendant::a[contains(@class, 'editing_highlight')]";
+        $exception = new \Behat\Mink\Exception\ElementNotFoundException(
+            $this->getSession(),
+            "Tile $sectionnumber highlight menu action"
+        );
+        $actual = trim($this->find('xpath', $linkxpath, $exception)->getText());
+        if ($actual !== $expected) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the tile $sectionnumber menu action to read '$expected', it reads '$actual'",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Click one of the above-tiles control toggles (the copy shown on desktop).
+     *
+     * @Given /^I toggle the "(?P<control>animatednav|highcontrast)" tiles control$/
+     * @param string $control
+     */
+    public function i_toggle_the_tiles_control($control) {
+        $this->execute_script(
+            "document.getElementById('format-tiles-control-$control-sm').click();"
+        );
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+    }
+
+    /**
+     * Check an above-tiles control is checked.
+     *
+     * @Then /^the "(?P<control>animatednav|highcontrast)" tiles control should be checked$/
+     * @param string $control
+     */
+    public function tiles_control_should_be_checked($control) {
+        $this->assert_tiles_control_checked($control, true);
+    }
+
+    /**
+     * Check an above-tiles control is not checked.
+     *
+     * @Then /^the "(?P<control>animatednav|highcontrast)" tiles control should not be checked$/
+     * @param string $control
+     */
+    public function tiles_control_should_not_be_checked($control) {
+        $this->assert_tiles_control_checked($control, false);
+    }
+
+    /**
+     * Assert the checked state of an above-tiles control.
+     *
+     * @param string $control
+     * @param bool $expected
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function assert_tiles_control_checked(string $control, bool $expected): void {
+        $checked = (bool)$this->evaluate_script(
+            "return document.getElementById('format-tiles-control-$control-sm')?.checked || false;"
+        );
+        if ($checked !== $expected) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the $control tiles control " . ($expected ? 'to be' : 'not to be') . ' checked',
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the four above-tiles switch controls are rendered and wired to their toggle URLs.
+     *
+     * @Then /^the format tiles above tiles controls should be complete$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_above_tiles_controls_should_be_complete() {
+        $result = $this->evaluate_tiles_js('
+            const expected = {
+                "format-tiles-control-animatednav": "toggleanimatednav",
+                "format-tiles-control-highcontrast": "togglehighcontrast",
+            };
+            let problem = "";
+            for (const [base, action] of Object.entries(expected)) {
+                for (const suffix of ["-xs", "-sm"]) {
+                    const id = base + suffix;
+                    const input = document.getElementById(id);
+                    if (!input) {
+                        problem = "missing " + id;
+                        break;
+                    }
+                    if (!input.closest(".form-switch")) {
+                        problem = id + " is not inside a form-switch";
+                        break;
+                    }
+                    if (!document.querySelector(`label[for="${id}"]`)) {
+                        problem = "missing label for " + id;
+                        break;
+                    }
+                    const url = input.dataset.formatTilesControlUrl || "";
+                    if (!url.includes("format-tiles-action=" + action)) {
+                        problem = id + " has url " + url;
+                        break;
+                    }
+                }
+            }
+            return problem ? problem : "ok";
+        ');
+        if ($result !== 'ok') {
+            throw new \Behat\Mink\Exception\ExpectationException($result, $this->getSession());
+        }
+    }
+
+    /**
+     * Check the section zero container and the above tiles bar are siblings of the multi-section page.
+     *
+     * @Then /^the above tiles and section zero containers should share the multi-section page parent$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_above_tiles_containers_should_share_the_page_parent() {
+        $result = $this->evaluate_tiles_js('
+            const page = document.getElementById("format-tiles-multi-section-page");
+            const zero = document.getElementById("section-zero-container");
+            const above = document.getElementById("abovetiles");
+            if (!page || !zero || !above) {
+                return "missing element";
+            }
+            return (zero.parentElement === page && above.parentElement === page) ? "ok" : "parent mismatch";
+        ');
+        if ($result !== 'ok') {
+            throw new \Behat\Mink\Exception\ExpectationException($result, $this->getSession());
+        }
+    }
+
+    /**
+     * Click the same activity link twice within one page task, so both clicks race each other.
+     *
+     * @Given /^I click format tiles activity "(?P<activityname_string>(?:[^"]|\\")*)" twice with no delay$/
+     * @param string $activityname
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function click_format_tiles_activity_twice($activityname) {
+        $this->wait_for_pending_js();
+        $name = json_encode($activityname);
+        $result = $this->evaluate_tiles_js("
+            const links = Array.from(document.querySelectorAll('#page-content a'));
+            const link = links.find((candidate) => candidate.textContent.trim() === $name);
+            if (!link) {
+                return 'not found';
+            }
+            link.click();
+            link.click();
+            return 'clicked';
+        ");
+        if ($result !== 'clicked') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Could not find the activity link $activityname",
+                $this->getSession()
+            );
+        }
+        $this->getSession()->wait(self::get_timeout() * 1000, "document.querySelector('.modal.show.embed_cm_modal') !== null");
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+    }
+
+    /**
+     * Check how many activity modals are open.
+     *
+     * @Then /^there should be "(?P<count>\d+)" open tiles activity modals?$/
+     * @param int $count
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function there_should_be_open_tiles_activity_modals($count) {
+        $actual = (int)$this->evaluate_script(
+            "return document.querySelectorAll('.modal.show.embed_cm_modal').length;"
+        );
+        if ($actual !== (int)$count) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected $count open activity modals, found $actual",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Click a tile's icon picker launcher twice within one page task.
+     *
+     * @Given /^I double click the tiles icon picker for tile "(?P<section_number>\d+)"$/
+     * @param int $sectionnumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_double_click_the_tiles_icon_picker($sectionnumber) {
+        $this->wait_for_pending_js();
+        $result = $this->evaluate_tiles_js("
+            const launcher = document.getElementById('tileicon_$sectionnumber');
+            if (!launcher) {
+                return 'not found';
+            }
+            launcher.click();
+            launcher.click();
+            return 'clicked';
+        ");
+        if ($result !== 'clicked') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Could not find the icon picker launcher for tile $sectionnumber",
+                $this->getSession()
+            );
+        }
+        $this->getSession()->wait(self::get_timeout() * 1000, "document.getElementById('icon_picker_modal') !== null");
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+    }
+
+    /**
+     * Check exactly one icon picker modal is open and it lists icons.
+     *
+     * @Then /^there should be exactly one open icon picker$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function there_should_be_exactly_one_open_icon_picker() {
+        $actual = $this->evaluate_tiles_js('
+            return document.querySelectorAll("#icon_picker_modal").length + ":"
+                + document.querySelectorAll("#icon_picker_modal .pickericon").length;
+        ');
+        [$modals, $icons] = array_map('intval', explode(':', (string)$actual));
+        if ($modals !== 1 || $icons < 1) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected one icon picker with icons, found $modals modals and $icons icons",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the activity modal header has a close button and no full width toggle.
+     *
+     * @Then /^the tiles activity modal header should have a close button and no full width toggle$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_modal_header_should_have_a_close_button() {
+        $result = $this->evaluate_tiles_js('
+            const modal = document.querySelector(".modal.show.embed_cm_modal");
+            if (!modal) {
+                return "no modal";
+            }
+            const close = modal.querySelector(".modal-header button.btn-close");
+            const toggle = modal.querySelector(".button_toggle_fullwidth");
+            return (close ? "close" : "noclose") + ":" + (toggle ? "toggle" : "notoggle");
+        ');
+        if ($result !== 'close:notoggle') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Unexpected activity modal header: $result",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check focus is on the manual completion toggle inside the open activity modal.
+     *
+     * @Then /^the tiles activity modal completion toggle should have focus$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_modal_completion_toggle_should_have_focus() {
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+        $result = $this->evaluate_tiles_js('
+            const modal = document.querySelector(".modal.show.embed_cm_modal");
+            if (!modal) {
+                return "no modal";
+            }
+            const active = document.activeElement;
+            if (!active) {
+                return "no active element";
+            }
+            if (!modal.contains(active)) {
+                return "focus outside modal: " + active.tagName;
+            }
+            if (!active.matches("button[data-action=toggle-manual-completion]")) {
+                return "focus on " + active.tagName + "." + active.className;
+            }
+            return "ok";
+        ');
+        if ($result !== 'ok') {
+            throw new \Behat\Mink\Exception\ExpectationException($result, $this->getSession());
+        }
+    }
+
+    /**
+     * Remember the current activity modal width.
+     *
+     * @Given /^I remember the tiles activity modal width$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_remember_the_tiles_activity_modal_width() {
+        $width = $this->evaluate_tiles_js('
+            const dialog = document.querySelector(".modal.show.embed_cm_modal .modal-dialog");
+            if (!dialog) {
+                return -1;
+            }
+            return Math.round(dialog.getBoundingClientRect().width);
+        ');
+        if ((int)$width <= 0) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'Could not measure the activity modal width',
+                $this->getSession()
+            );
+        }
+        $this->execute_script('window.__tilesModalWidth = ' . (int)$width . ';');
+    }
+
+    /**
+     * Scroll the activity modal body, so any height watcher gets a chance to fire.
+     *
+     * @When /^I scroll the tiles activity modal body$/
+     */
+    public function i_scroll_the_tiles_activity_modal_body() {
+        $this->execute_script('
+            const body = document.querySelector(".modal.show.embed_cm_modal .modal-body");
+            if (body) {
+                body.scrollTop = body.scrollHeight;
+            }
+        ');
+        $this->getSession()->wait(2000);
+    }
+
+    /**
+     * Check the activity modal width has not changed since it was remembered.
+     *
+     * @Then /^the tiles activity modal width should not have changed$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_modal_width_should_not_have_changed() {
+        $actual = (int)$this->evaluate_tiles_js('
+            const dialog = document.querySelector(".modal.show.embed_cm_modal .modal-dialog");
+            return dialog ? Math.round(dialog.getBoundingClientRect().width) : -1;
+        ');
+        $expected = (int)$this->evaluate_script('return window.__tilesModalWidth || -1;');
+        if ($actual !== $expected) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "The activity modal width changed from $expected to $actual",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the course settings default tile icon select holds the given icon filename.
+     *
+     * @Then /^the tiles default icon field should hold "(?P<icon_string>(?:[^"]|\\")*)"$/
+     * @param string $icon
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_default_icon_field_should_hold($icon) {
+        $value = $this->evaluate_script(
+            "return document.getElementById('id_defaulttileicon')?.value || '';"
+        );
+        if ($value !== $icon) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the default tile icon field to hold '$icon', it holds '$value'",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the tiles overlay is fixed to the viewport.
+     *
+     * @Then /^the tiles overlay should be fixed to the viewport$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_overlay_should_be_fixed_to_the_viewport() {
+        $position = $this->evaluate_tiles_js('
+            const overlay = document.getElementById("format_tiles_overlay");
+            return overlay ? window.getComputedStyle(overlay).position : "missing";
+        ');
+        if ($position !== 'fixed') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the tiles overlay to be fixed, its position is $position",
+                $this->getSession()
+            );
+        }
     }
 }

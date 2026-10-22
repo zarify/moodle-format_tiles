@@ -40,6 +40,7 @@ Feature: Interface can be enhabced with JS nav if allowed by site admin
     And I click on tile "1"
     And I wait until the page is ready
     And I should see "Test book name s1"
+    And the tiles overlay should be fixed to the viewport
 
     #  We check for activities in the #format-tiles-multi-section-page element not the page, as course index contains them too.
     And I should not see "Test book name s2" in the "#format-tiles-multi-section-page" "css_element"

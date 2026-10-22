@@ -64,7 +64,7 @@ Feature: PDFs can be set to open in modal windows
 
     # First with subtiles off as teacher
   @javascript
-  Scenario: Open modal PDF as student with subtiles off
+  Scenario: Open modal PDF as teacher with subtiles off
     When format_tiles subtiles are off for course "Course 1"
     And I log in as "teacher1"
     And I am on "Course 1" course homepage
@@ -117,9 +117,9 @@ Feature: PDFs can be set to open in modal windows
     And Tiles JS config element exists on page
     And I log out tiles
 
-  # Now the same again for student with subtiles on
+  # Now the same again for teacher with subtiles on
   @javascript
-  Scenario: Open modal PDF as student with subtiles on
+  Scenario: Open modal PDF as teacher with subtiles on
     When format_tiles subtiles are on for course "Course 1"
     And I log in as "teacher1"
     And I am on "Course 1" course homepage

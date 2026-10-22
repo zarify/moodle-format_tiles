@@ -281,6 +281,9 @@ class util {
                 'maxnumbericons' => self::get_icon_picker_max_number_icons(),
             ];
             $PAGE->requires->js_call_amd('format_tiles/edit_icon_picker', 'init', $editparams);
+            // Reactive highlight/unhighlight wiring for the section control menu.
+            $PAGE->requires->js_call_amd('format_tiles/mutations', 'init');
+            $PAGE->requires->js_call_amd('format_tiles/section', 'init');
         }
         if ($course->enablecompletion) {
             $PAGE->requires->js_call_amd('format_tiles/completion', 'init', [$course->id]);

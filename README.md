@@ -27,8 +27,10 @@ The 5.3 floor exists because the replacement section APIs
 exist in Moodle 4.5 or 5.0–5.2.
 
 Verified on Moodle 6.0dev (Build 20261021, core commit `46c042e7d`) and on Moodle 5.3 LTS with the
-plugin's four PHPUnit files, its Behat suite (`--tags=@format_tiles`) and a browser smoke test of
-the tile grid, activity modals, section highlight/hide and dark mode.
+plugin's PHPUnit suite (`tests/`, including `tests/courseformat/` and `tests/privacy/`), its Behat
+suite (`--tags=@format_tiles`) and a browser smoke test of the tile grid, activity modals, section
+highlight/hide and dark mode. `tests/COVERAGE.md` records what the suite guards and what is still a
+known gap.
 
 ## Moodle 6 compatibility
 
