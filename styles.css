@@ -2135,7 +2135,7 @@ allow tiles to be taller and thinner so can fit two side by side in portrait on 
         font-size: 1em;
     }
     .format-tiles #page.container-fluid,
-    .format-tiles .path-course-view li.activity > div {
+    .format-tiles.path-course-view li.activity > div {
         /* stylelint-disable-next-line declaration-no-important */
         padding: 0 !important;
     }

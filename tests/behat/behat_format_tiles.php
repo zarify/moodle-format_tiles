@@ -1241,6 +1241,22 @@ class behat_format_tiles extends behat_base {
     }
 
     /**
+     * Check the activity item inside a tile carries no padding on a narrow screen.
+     *
+     * @Then /^the tiles activity item should have no padding$/
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_item_should_have_no_padding() {
+        $padding = $this->element_get_css_value('body.format-tiles.path-course-view li.activity > div', 'padding');
+        if ($padding !== '0px') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the activity item to have no padding, it has '$padding'",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
      * Check a tile is open and that a named subsection within it was scrolled to and focused.
      *
      * expandSection() opens the tile, then moves the focus into the subsection 300 ms later, once the slide down
