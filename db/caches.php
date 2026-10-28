@@ -56,7 +56,7 @@ $definitions = [
         'simplekeys' => true,
         'simpledata' => true,
         'staticacceleration' => true,
-        'staticaccelerationsize' => 30,
+        'staticaccelerationsize' => 256,
     ],
     // Array of values of course format options by element ID.
     // E.g. photo filenames by course section ID.
@@ -66,6 +66,6 @@ $definitions = [
         'simplekeys' => true,
         'simpledata' => false,
         'staticacceleration' => true,
-        'staticaccelerationsize' => 30,
+        'staticaccelerationsize' => 256,
     ],
 ];

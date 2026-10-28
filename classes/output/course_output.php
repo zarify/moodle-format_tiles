@@ -103,6 +103,14 @@ class course_output implements \renderable, \templatable {
     protected $completioninfo;
 
     /**
+     * Memo of completion data fetched in this render, keyed by course module id.
+     * Both section_progress() and course_module_data() want this data for the same modules, and each
+     * completion_info::get_data() call repeats a completion cache lookup and array copy, so fetch once.
+     * @var array
+     */
+    private array $cmcompletiondata = [];
+
+    /**
      * @var bool
      */
     protected $completionenabled;
@@ -712,6 +720,21 @@ class course_output implements \renderable, \templatable {
     }
 
     /**
+     * Get this user's completion data for a course module, fetching it at most once per render.
+     *
+     * @param \cm_info $mod
+     * @return \stdClass
+     * @throws \coding_exception
+     * @throws \dml_exception
+     */
+    private function get_cm_completion_data(\cm_info $mod): \stdClass {
+        if (!array_key_exists($mod->id, $this->cmcompletiondata)) {
+            $this->cmcompletiondata[$mod->id] = $this->completioninfo->get_data($mod, true);
+        }
+        return $this->cmcompletiondata[$mod->id];
+    }
+
+    /**
      * Count the number of course modules with completion tracking activated
      * in this section, and the number which the student has completed
      * Exclude labels if we are using sub tiles, as these are not checkable
@@ -737,7 +760,7 @@ class course_output implements \renderable, \templatable {
                 if ($thismod->uservisible && !$thismod->deletioninprogress) {
                     if (!$issubsection && $this->completioninfo->is_enabled($thismod) != COMPLETION_TRACKING_NONE) {
                         $outof++;
-                        $completiondata = $this->completioninfo->get_data($thismod, true);
+                        $completiondata = $this->get_cm_completion_data($thismod);
                         if (
                             $completiondata->completionstate == COMPLETION_COMPLETE ||
                             $completiondata->completionstate == COMPLETION_COMPLETE_PASS
@@ -1025,7 +1048,7 @@ class course_output implements \renderable, \templatable {
         if ($completion) {
             // Add completion icon to the course module if appropriate.
             $moduleobject['hascompletion'] = true;
-            $completiondata = $this->completioninfo->get_data($mod, true);
+            $completiondata = $this->get_cm_completion_data($mod);
             $moduleobject['completionstate'] = $completiondata->completionstate;
             $moduleobject['iscomplete'] = $completiondata->completionstate
                 && $completiondata->completionstate !== COMPLETION_COMPLETE_FAIL;
