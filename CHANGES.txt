@@ -805,3 +805,7 @@ Other
 - Strip style/script breakouts from the custom CSS admin setting
 - Re-queue legacy tile photo/icon migration if its adhoc tasks were lost; guard the install sample-image copy against an existing file; fix the section path guard in restore
 - Reuse per-module completion data when rendering progress; read the dynamic CSS template source once per request
+
+5.2.4 (2026102800)
+==================
+- Present the tile again when returning via the section breadcrumb or a #module anchor: the expand guard mistook the pending open target for an already-open tile, leaving the content hidden and the page dimmed after returning from an activity
