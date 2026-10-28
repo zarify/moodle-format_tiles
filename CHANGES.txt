@@ -795,3 +795,13 @@ Other
 - Add Behat coverage for section highlighting, above-tiles controls, modal lifecycle, URL modals and the icon picker
   during course creation; repair stale and unreachable tests
 - Publish the test coverage analysis in tests/COVERAGE.md
+
+5.2.3 (2026102700)
+==================
+- Dark mode (Moodle 6 colour modes): tiles and section cards, icon picker, subtiles, filter bar and tooltips now take their colours from the core CSS variables instead of fixed light values
+- Fix light sections in edit mode under dark mode (literal white section background)
+- set_image draftfile: verify the draft area belongs to the caller and store the photo in the course context
+- Sesskey checks on the skipcheck and canceljssession links; require_login in the fragment callbacks
+- Strip style/script breakouts from the custom CSS admin setting
+- Re-queue legacy tile photo/icon migration if its adhoc tasks were lost; guard the install sample-image copy against an existing file; fix the section path guard in restore
+- Reuse per-module completion data when rendering progress; read the dynamic CSS template source once per request
