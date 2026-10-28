@@ -68,6 +68,10 @@
     --format-tiles-photo-tile-text-padding: {{phototiletextpadding}}px;
     --format-tiles-high-contrast-black: {{{high_contrast_black}}};
 }
+{{! The high contrast text colour is used on tile text, so it has to lighten in dark mode.}}
+[data-bs-theme="dark"] {
+    --format-tiles-high-contrast-black: #f8f9fa;
+}
 {{#shade_heading_bar}}
     .format-tiles .course-content li.activity.label h1,
     .format-tiles .course-content .section li.activity.label h2,
@@ -101,7 +105,7 @@
     {{^tilefittermaxwidth}}
         {{! If no session screen width has yet been set, we hide the tiles initially, so we can calculate correct width in JS.}}
         {{! We will remove this opacity later in JS.}}
-        .format-tiles.course-{{courseid}}.jsenabled:not(.editing) #format-tiles-multi-section-page {opacity: 0;}";
+        .format-tiles.course-{{courseid}}.jsenabled:not(.editing) #format-tiles-multi-section-page {opacity: 0;}
     {{/tilefittermaxwidth}}
 {{/usingtilefitter}}
 
