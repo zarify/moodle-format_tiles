@@ -289,4 +289,152 @@ final class format_tiles_externallib_test extends \externallib_advanced_testcase
             $result
         );
     }
+
+    /**
+     * Put a copy of a plugin fixture image into a user's draft file area, as the file picker would.
+     *
+     * @param int $userid owner of the draft area
+     * @param int $draftitemid draft area item id
+     * @param string $filename fixture file name
+     * @return void
+     */
+    private function create_draft_image(int $userid, int $draftitemid, string $filename): void {
+        global $CFG;
+        get_file_storage()->create_file_from_pathname([
+            'contextid' => \context_user::instance($userid)->id,
+            'component' => 'user',
+            'filearea' => 'draft',
+            'itemid' => $draftitemid,
+            'filepath' => '/',
+            'filename' => $filename,
+        ], "$CFG->dirroot/course/format/tiles/tests/fixtures/images/$filename");
+    }
+
+    /**
+     * A teacher must not be able to copy a file out of another user's draft area.
+     *
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \moodle_exception
+     */
+    public function test_set_image_draftfile_rejects_foreign_draft(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions);
+        $sectionid = get_fast_modinfo($course)->get_section_info_all()[1]->id;
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+
+        // Draft item ids need a real user (not the guest), so pick one as the teacher.
+        $this->setUser($teacher);
+        $draftitemid = file_get_unused_draft_itemid();
+        $this->create_draft_image($student->id, $draftitemid, 'placeholder_1.jpg');
+
+        $this->setUser($teacher);
+        try {
+            \format_tiles\external\external::set_image(
+                $course->id,
+                $sectionid,
+                'placeholder_1.jpg',
+                'draftfile',
+                \context_user::instance($student->id)->id,
+                $draftitemid
+            );
+            $this->fail("Expected an invalid_parameter_exception when using another user's draft area");
+        } catch (\invalid_parameter_exception $e) {
+            $this->assertSame('invalidparameter', $e->errorcode);
+        }
+
+        // Nothing may have been copied into the course.
+        $this->assertEmpty(get_file_storage()->get_area_files(
+            \context_course::instance($course->id)->id,
+            'format_tiles',
+            'tilephoto',
+            $sectionid,
+            'filename',
+            false
+        ));
+    }
+
+    /**
+     * A photo picked from the teacher's own draft area must be stored in the course context,
+     * which is the context the pluginfile callback serves and checks.
+     *
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \moodle_exception
+     */
+    public function test_set_image_draftfile_stores_in_course_context(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions);
+        $sectionid = get_fast_modinfo($course)->get_section_info_all()[1]->id;
+        $teacher = $this->getDataGenerator()->create_and_enrol($course, 'editingteacher');
+
+        $this->setUser($teacher);
+        $draftitemid = file_get_unused_draft_itemid();
+        $this->create_draft_image($teacher->id, $draftitemid, 'placeholder_1.jpg');
+
+        $result = \format_tiles\external\external::set_image(
+            $course->id,
+            $sectionid,
+            'placeholder_1.jpg',
+            'draftfile',
+            \context_user::instance($teacher->id)->id,
+            $draftitemid
+        );
+        $result = \core_external\external_api::clean_returnvalue(
+            \format_tiles\external\external::set_image_returns(),
+            $result
+        );
+        $this->assertTrue($result['status']);
+
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $files = get_file_storage()->get_area_files(
+            $coursecontextid,
+            'format_tiles',
+            'tilephoto',
+            $sectionid,
+            'filename',
+            false
+        );
+        $this->assertCount(1, $files);
+        $file = reset($files);
+        $this->assertSame(
+            $file->get_filename(),
+            \format_tiles\local\format_option::get(
+                $course->id,
+                \format_tiles\local\format_option::OPTION_SECTION_PHOTO,
+                $sectionid
+            )
+        );
+        $this->assertStringContainsString('/' . $coursecontextid . '/format_tiles/tilephoto/', $result['imageurl']);
+    }
+
+    /**
+     * Tile click logging must only accept a course context and a real section number.
+     *
+     * @throws \coding_exception
+     * @throws \dml_exception
+     * @throws \moodle_exception
+     */
+    public function test_log_tile_click_rejects_non_course_context(): void {
+        $this->resetAfterTest();
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions);
+        $student = $this->getDataGenerator()->create_and_enrol($course, 'student');
+        $coursecontextid = \context_course::instance($course->id)->id;
+        $this->setUser($student);
+
+        try {
+            \format_tiles\external\external::log_tile_click(\context_user::instance($student->id)->id, 0, 0);
+            $this->fail('Expected an invalid_parameter_exception for a non-course context');
+        } catch (\invalid_parameter_exception $e) {
+            $this->assertSame('invalidparameter', $e->errorcode);
+        }
+
+        // A negative section number is not a section of the course.
+        $this->expectException(\invalid_parameter_exception::class);
+        \format_tiles\external\external::log_tile_click($coursecontextid, -1, 0);
+    }
 }

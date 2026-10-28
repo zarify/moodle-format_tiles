@@ -198,6 +198,8 @@ class util {
 
         if (optional_param('skipcheck', 0, PARAM_INT)) {
             // The skipcheck param is for anyone stuck at loading icon who clicks it - they escape it for session.
+            // It changes session state, so it needs a sesskey (the link on the loading page includes one).
+            require_sesskey();
             $SESSION->format_tiles_skip_width_check = 1;
             return false;
         }

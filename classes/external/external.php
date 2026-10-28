@@ -126,7 +126,7 @@ class external extends external_api {
                 }
                 return self::set_tile_photo($data, $context);
             case 'draftfile':
-                return self::set_tile_photo_from_draftfile($data);
+                return self::set_tile_photo_from_draftfile($data, $context);
             default:
                 throw new invalid_parameter_exception('Image type is invalid ' . $data['imagetype']);
         }
@@ -135,6 +135,7 @@ class external extends external_api {
     /**
      * Given a draft file uploaded by user, save to this plugin's file area.
      * @param [] $data
+     * @param \context $coursecontext context of the course the photo belongs to (where the file is stored).
      * @return array
      * @throws dml_exception
      * @throws file_exception
@@ -143,7 +144,9 @@ class external extends external_api {
      * @throws required_capability_exception
      * @throws stored_file_creation_exception
      */
-    private static function set_tile_photo_from_draftfile($data) {
+    private static function set_tile_photo_from_draftfile($data, \context $coursecontext) {
+        global $USER;
+
         $ctx = \context::instance_by_id($data['sourcecontextid']);
         if (!$data['sourcecontextid'] || !is_numeric($data['sourceitemid']) || !$ctx) {
             throw new invalid_parameter_exception(
@@ -151,7 +154,12 @@ class external extends external_api {
                 . ") or source item id (" . $data['sourceitemid'] . ") or context"
             );
         }
-        $tilephoto = new tile_photo($ctx, $data['sectionid']);
+        // The source must be the caller's own draft area, otherwise any teacher could read and copy
+        // another user's draft files into a course.
+        if ($ctx->contextlevel !== CONTEXT_USER || $ctx->instanceid != $USER->id) {
+            throw new invalid_parameter_exception('Invalid source context');
+        }
+        $tilephoto = new tile_photo($coursecontext, $data['sectionid']);
         $fs = get_file_storage();
         $sourcefile = $fs->get_file(
             $data['sourcecontextid'],
@@ -353,7 +361,7 @@ class external extends external_api {
                     PARAM_INT,
                     'Section id whose icon/image we are setting (zero means whole course not just one section)'
                 ),
-                'image' => new external_value(PARAM_RAW, 'File name for the image picked'),
+                'image' => new external_value(PARAM_FILE, 'File name for the image picked'),
                 'imagetype' => new external_value(PARAM_RAW, 'Image type for image picked (tileicon, tilephoto, draftfile)'),
                 'sourcecontextid' => new external_value(
                     PARAM_INT,
@@ -401,6 +409,14 @@ class external extends external_api {
         // Request and permission validation.
         $coursecontext = \core\context::instance_by_id($params['coursecontextid']);
         self::validate_context($coursecontext);
+
+        // Only a course context can be logged as viewed, and only a real section number.
+        if ($coursecontext->contextlevel !== CONTEXT_COURSE) {
+            throw new invalid_parameter_exception('Context must be a course context');
+        }
+        if ($params['sectionnumber'] < 0) {
+            throw new invalid_parameter_exception('Invalid section number');
+        }
 
         course_view($coursecontext, $sectionnumber);
 

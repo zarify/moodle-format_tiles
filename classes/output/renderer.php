@@ -130,6 +130,8 @@ class renderer extends section_renderer {
         // In that case we show them the multi section page and use JS to open the section.
         if (optional_param('canceljssession', false, PARAM_BOOL)) {
             // The user is shown a link to cancel the successful JS flag for this session in <noscript> tags if their JS is off.
+            // It changes session state, so it needs a sesskey.
+            require_sesskey();
             unset($SESSION->format_tiles_jssuccessfullyused);
         }
 

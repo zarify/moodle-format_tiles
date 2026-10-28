@@ -1031,6 +1031,7 @@ function format_tiles_pluginfile($course, $cm, $context, $filearea, $args, $forc
  */
 function format_tiles_output_fragment_get_cm_list(array $args): string {
     global $PAGE, $DB;
+    require_login();
     $sectionid = $args['sectionid'];
     $section = $DB->get_record('course_sections', ['id' => $sectionid]);
     if (!$section) {
@@ -1092,6 +1093,7 @@ function format_tiles_output_fragment_get_cm_list(array $args): string {
  */
 function format_tiles_output_fragment_get_cm_content(array $args): string {
     global $DB, $CFG, $PAGE;
+    require_login();
     $modcontext = context::instance_by_id($args['contextid']);
     if ($modcontext->contextlevel !== CONTEXT_MODULE) {
         throw new invalid_parameter_exception(
