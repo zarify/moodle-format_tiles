@@ -2,6 +2,14 @@
 /*Formerly included in dynamic styles via mustache*/
 /*The variables e.g. --format-tiles-colour are defined in dynamic_styles mustache template*/
 
+/*Danger text colour, mode dependent: core's dark value is too pale on the dark tile surfaces*/
+:root {
+    --format-tiles-danger-text: var(--bs-danger-text-emphasis, #b02a37);
+}
+[data-bs-theme="dark"] {
+    --format-tiles-danger-text: #ff8f8f;
+}
+
 .format-tiles .course-content ul.tiles .tile.tilestyle-1,
 .format-tiles .course-content ul.tiles .tile.tilestyle-2,
 .format-tiles li.section:not(#section-0).tilestyle-1 .course-section-header,
@@ -101,7 +109,7 @@
 }
 .format-tiles ul.tiles#multi_section_tiles li.tile.section.main {
     /*tile contents when displayed in the multi tile screen via JS*/
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     margin: 10px;
     padding: 30px 0 30px 0;
     width: 100%;
@@ -149,7 +157,7 @@
     padding: 7px 10px 5px 10px;
 }
 .format-tiles .progress-indic {
-    color: #676767;
+    color: var(--bs-secondary-color, #676767);
 }
 
 .format-tiles .progress-indic svg {
@@ -163,7 +171,7 @@
 }
 
 .format-tiles .progress-indic i.fa-check {
-    color: darkgreen;
+    color: var(--bs-success-text-emphasis, darkgreen);
 }
 .format-tiles .progress-indic svg circle.partial {
     stroke: #888;
@@ -183,7 +191,7 @@
     font-size: 18px;
     font-weight: normal;
     transition: all 0.2s ease-in-out;
-    fill: #666;
+    fill: var(--bs-secondary-color, #666);
 }
 .format-tiles.format-tiles-high-contrast .progress-indic svg text {
     fill: var(--format-tiles-high-contrast-black);
@@ -200,7 +208,7 @@
     vertical-align: top;
     line-height: 40px;
     margin-right: 3px;
-    color: #676767;
+    color: var(--bs-secondary-color, #676767);
     font-size: 0.9em;
 }
 .format-tiles.format-tiles-high-contrast .progress-indic .progress-indic-label {
@@ -209,7 +217,7 @@
 
 .format-tiles .overall-progress {
     text-align: center;
-    color: grey;
+    color: var(--bs-secondary-color, grey);
     transition: all 0.5s;
 }
 
@@ -218,7 +226,7 @@
 }
 
 .format-tiles #page .course-content  ul li.section.main.current {
-    background-color: inherit;
+    background-color: var(--bs-white, #ffffff);
 }
 
 .format-tiles .icon20 {
@@ -263,7 +271,7 @@
     padding: 0;
 }
 
-.format-tiles .editing ul.tiles#multi_section_tiles li.section,
+.format-tiles.editing ul.tiles#multi_section_tiles li.section,
 .format-tiles ul.tiles#multi_section_tiles li#section-0.section {
     display: block;
     width: 100%;
@@ -273,7 +281,7 @@
 }
 .format-tiles .course-content ul li.section.main:not(.delegated-section) {
     width: calc(100% - 15px);
-    background-color: white;
+    background-color: var(--bs-white, #ffffff);
     /* stop 'dot' background image in essential theme*/
     background-image: none;
     margin-top: 10px;
@@ -308,10 +316,10 @@
     margin: 7px;
     height: 175px;
     vertical-align: top;
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     border-top: 0.45em solid transparent;
     transition: background-color 0.2s ease-in-out, all 0.5s ease-in-out;
-    color: #777;
+    color: var(--bs-body-color, #777);
     box-shadow: 2px 4px 5px 0 #bdbdbd;
     position: relative;
 }
@@ -351,7 +359,7 @@
 }
 
 .format-tiles .tile a {
-    color: #333;
+    color: var(--bs-body-color, #333);
     width: 100%;
 }
 
@@ -359,19 +367,19 @@
 .format-tiles .section li.activity.label h2,
 .format-tiles .section li.activity.label h3,
 .format-tiles .section li.activity.label h4 {
-    color: #555;
+    color: var(--bs-body-color, #555);
 }
 
 .format-tiles .section li.activity.label .dimmed_text h1,
 .format-tiles .section li.activity.label .dimmed_text h2,
 .format-tiles .section li.activity.label .dimmed_text h3,
 .format-tiles .section li.activity.label .dimmed_text h4 {
-    color: #818a91;
+    color: var(--bs-secondary-color, #818a91);
 }
 
 .format-tiles .hidden .sectiontitle h2,
 .format-tiles #page-content .hidden .sectiontitle h2 a.quickeditlink {
-    color: #818a91;
+    color: var(--bs-secondary-color, #818a91);
 }
 
 .format-tiles .course-content ul.tiles .tile-clickable:hover,
@@ -399,11 +407,11 @@
 }
 
 .format-tiles ul.tiles li.section .warningtext {
-    color: red;
+    color: var(--format-tiles-danger-text, red);
 }
 
 .format-tiles ul.tiles li.section .warningbar {
-    background-color: red;
+    background-color: var(--bs-danger, red);
     color: #fff;
     padding: 5px;
     margin-left: 40px;
@@ -486,7 +494,7 @@
 }
 .format-tiles:not(.editing) .course-content .tilestyle-1 .tile-icon .icon,
 .format-tiles:not(.editing) .course-content .tilestyle-2 .tile-icon .icon {
-    color: #8c8c8c;
+    color: var(--bs-secondary-color, #8c8c8c);
     opacity: 1;
 }
 .format-tiles:not(.editing).format-tiles-high-contrast .course-content .tilestyle-1 .tile-icon .icon,
@@ -506,7 +514,7 @@
     align-items: center;
     font-weight: bold;
     font-size: 34px;
-    color: #8c8c8c;
+    color: var(--bs-secondary-color, #8c8c8c);
 }
 .format-tiles.format-tiles-high-contrast .tile-number,
 .format-tiles.format-tiles-high-contrast ul.tiles .tile h2.tile-number {
@@ -526,25 +534,25 @@
     transform: translate(60px, -80px);
 }
 .format-tiles .tiles-editor-image .tile-number {
-    border: 3px solid rgb(29, 33, 37);
+    border: 3px solid var(--bs-border-color, rgb(29, 33, 37));
     height: 42px;
     width: 42px;
     font-size: 25px;
-    color: rgb(29, 33, 37);
+    color: var(--bs-body-color, rgb(29, 33, 37));
     margin-left: 17px;
 }
 .format-tiles #icon-picker-modal-body button.tile-number {
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     padding: 5px;
 }
 .format-tiles #icon-picker-modal-body button.tile-number:hover {
-    background-color: rgb(243, 243, 243);
+    background-color: var(--bs-tertiary-bg, rgb(243, 243, 243));
 }
 .format-tiles:not(.editing) .course-content .completioncheckbox.complete .icon {
     color: #fff;
 }
 .format-tiles:not(.editing) .course-content .completioncheckbox .icon {
-    color: #ababab;
+    color: var(--bs-secondary-color, #ababab);
 }
 .format-tiles .completioncheckbox .icon {
     font-size: 19px;
@@ -581,7 +589,7 @@
     z-index: 2;
 }
 .format-tiles .sectionbutton {
-    background-color: rgba(243, 243, 243);
+    background-color: var(--bs-tertiary-bg, #f3f3f3);
     margin-left: 5px;
     opacity: 1;
     width: 45px;
@@ -775,7 +783,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     margin-bottom: 3px;
     min-height: 45px;
     padding: 5px;
-    background-color: rgb(248, 249, 250);
+    background-color: var(--bs-tertiary-bg, rgb(248, 249, 250));
     border-radius: 10px;
     flex-wrap: wrap;
 }
@@ -829,7 +837,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 .format-tiles .modal-header .completioncheckbox:not(.complete) {
     border: 2px solid #ffffffa8;
     color: #fff;
-    background-color: #efefef;
+    background-color: var(--bs-secondary-bg, #efefef);
 }
 .format-tiles .completioncheckbox.background-course-base.complete i {
     color: #fff;
@@ -838,14 +846,14 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     font-size: 2em;
     width: 30px;
     height: 30px;
-    color: #ffaa30;
+    color: var(--bs-warning-text-emphasis, #ffaa30);
 }
 .format-tiles .course-content #filterintro {
     display: inline-block;
     padding: 10px;
     margin-left: 3px;
     margin-right: 3px;
-    color: #aaa;
+    color: var(--bs-secondary-color, #aaa);
     overflow: hidden;
 }
 .format-tiles .course-content #filterintro i {
@@ -895,7 +903,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     transition: all 0.2s ease-in-out;
     display: inline-block;
     padding: 8px;
-    color: #555;
+    color: var(--bs-body-color, #555);
     text-align: center;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -923,7 +931,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     font-size: 1.4em;
     line-height: 1.2em;
     font-weight: normal;
-    color: #333;
+    color: var(--bs-body-color, #333);
     word-wrap: break-word;
 }
 .format-tiles .sectiontitlecontainer {
@@ -946,7 +954,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles .sectiontitle h2 {
     font-weight: 600;
-    color: #666;
+    color: var(--bs-body-color, #666);
     display: inline-block;
 }
 .format-tiles.format-tiles-high-contrast .sectiontitle h2 {
@@ -1047,7 +1055,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     padding: 10px;
     cursor: pointer;
     display: inline-block;
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     border: none;
     width: 81px;
     height: 81px;
@@ -1066,7 +1074,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 #page-course-editsection .format-tiles .icon_picker_modal .modal-header,
 #page-course-edit .format-tiles .icon_picker_modal .modal-header {
-    color: #333;
+    color: var(--bs-body-color, #333);
 }
 
 .format-tiles .iconpickericons button.pickericondiv:hover,
@@ -1092,7 +1100,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     font-size: 55px;
     vertical-align: top;
     margin: 3px;
-    color: #8c8c8c;
+    color: var(--bs-secondary-color, #8c8c8c);
 }
 .format-tiles .embed_cm_modal .modal {
     margin: 10px auto;
@@ -1180,7 +1188,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     display: block;
 }
 .format-tiles #page-content li.activity.subtile.dimmed a.dropdown-toggle {
-    color: #888;
+    color: var(--bs-secondary-color, #888);
 }
 
 .format-tiles li.activity.dimmed .inplaceeditable,
@@ -1195,7 +1203,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     border-top-color: lightgray !important;
 }
 .format-tiles .dimmed .label_content {
-    color: grey;
+    color: var(--bs-secondary-color, grey);
 }
 
 .format-tiles .subtiles {
@@ -1209,7 +1217,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     width: 100%;
 }
 .format-tiles.editing .subtiles li.activity.label {
-    border: 1px solid rgb(231, 231, 231);
+    border: 1px solid var(--bs-border-color, rgb(231, 231, 231));
     position: relative;
 }
 /*YouTube iframes embedded in labels may be too wide */
@@ -1227,7 +1235,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     min-height: 50px;
     width: 100%;
     text-align: center;
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     padding: 6px;
     display: flex;
     justify-content: center;
@@ -1239,6 +1247,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles li.activity.subtile .editable-title {
     background-color: #f9f9f9cc;
+    background-color: color-mix(in srgb, var(--bs-white, #f9f9f9) 80%, transparent);
 }
 .format-tiles li.activity.subtile .activityname h5 {
     margin: 0;
@@ -1252,13 +1261,13 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     padding: 0 5px 10px 5px;
     display: block;
     text-transform: uppercase;
-    color: grey;
+    color: var(--bs-secondary-color, grey);
     font-size: 0.9em;
 }
 
 .format-tiles li.activity.subtile a:not(.dropdown-item),
 .format-tiles #page-content li.activity.subtile a:not(.dropdown-item) {
-    color: #565656;
+    color: var(--bs-secondary-color, #565656);
 }
 
 .format-tiles .subtiles .instancename {
@@ -1337,6 +1346,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 .format-tiles button.completioncheckbox:not(.complete),
 .format-tiles .completioncheckbox:not(.complete) {
     background-color: rgba(255, 255, 255, 0.7);
+    background-color: color-mix(in srgb, var(--bs-white, #ffffff) 70%, transparent);
 }
 .format-tiles .subtile .completioncheckbox {
     position: absolute;
@@ -1469,7 +1479,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 .format-tiles.editing .section .activity.subtile .activityinstance {
     padding: 0;
     display: block;
-    color: #565656;
+    color: var(--bs-body-color, #565656);
     font-size: 19px;
     overflow: hidden;
     height: calc(100% - 20px);
@@ -1487,7 +1497,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     margin-left: 30px;
 }
 .format-tiles.editing .section .activity.subtile .action-menu {
-    background-color: #f9f9f9;
+    background-color: var(--bs-tertiary-bg, #f9f9f9);
 }
 .format-tiles li.activity .subtile-activityinstance {
     position: absolute;
@@ -1545,7 +1555,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles .course-content li.activity.subtile {
     padding: 0;
-    background-color: #fafafa;
+    background-color: var(--bs-tertiary-bg, #fafafa);
 }
 .format-tiles .course-content ul.section.nosubtiles .actions {
     margin-top: 0.5em;
@@ -1556,7 +1566,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     font-size: 1.9em;
     width: 25px;
     height: 25px;
-    color: grey;
+    color: var(--bs-secondary-color, grey);
 }
 .format-tiles .modal-header:focus,
 .format-tiles .resourcecontent:focus,
@@ -1609,9 +1619,9 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 
 .format-tiles .tooltip-inner {
-    background-color: #fff;
-    color: #181818;
-    border: 2px solid #4a4a4a;
+    background-color: var(--bs-white, #ffffff);
+    color: var(--bs-body-color, #181818);
+    border: 2px solid var(--bs-border-color, #4a4a4a);
     opacity: 0.98;
 }
 .format-tiles.format-tiles-subtiles .tooltip-inner ul {
@@ -1657,8 +1667,8 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles fieldset#id_courseformathdr #colourselectnotify,
 .format-site fieldset#id_courseformathdr #colourselectnotify {
-    color: #212529;
-    background-color: #e9ecef;
+    color: var(--bs-body-color, #212529);
+    background-color: var(--bs-secondary-bg, #e9ecef);
     border-radius: 0.2rem;
     padding: 2px 8px;
     height: 26px;
@@ -1731,6 +1741,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles li.activity.subtile .instancename.opaque-bg {
     background-color: rgba(249, 249, 249, 0.8);
+    background-color: color-mix(in srgb, var(--bs-white, #f9f9f9) 80%, transparent);
     transition: background-color 200ms ease-in-out;
 }
 .format-tiles .course-content ul.tiles .tile.phototile.tilestyle-2 .photo-tile-text h3 {
@@ -1779,7 +1790,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 .format-tiles .iconpickerphotos .photo {
     height: 100px;
     width: 150px;
-    background-color: lightgrey;
+    background-color: var(--bs-secondary-bg, lightgrey);
     margin: 0.5em;
     background-size: cover;
     padding: 0;
@@ -1797,7 +1808,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     opacity: 0.8;
 }
 .format-tiles a#page-loading-icon {
-    color: #0c0c0c;
+    color: var(--bs-body-color, #0c0c0c);
     text-decoration: none;
 }
 .format-tiles .course-content li.section .summary ul {
@@ -1837,8 +1848,8 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 }
 .format-tiles li.section:not(#section-0).hidden .course-section-header.tile-bar-heading,
 .format-tiles li.section:not(#section-0).restricted .course-section-header.tile-bar-heading {
-    background-color: #efefef;
-    border-top-color: #cdcdcd;
+    background-color: var(--bs-secondary-bg, #efefef);
+    border-top-color: var(--bs-border-color, #cdcdcd);
 }
 .format-tiles li.section:not(#section-0).hidden .course-section-header.tile-bar-heading .tilebarphoto,
 .format-tiles li.section:not(#section-0).restricted .course-section-header.tile-bar-heading .tilebarphoto {
@@ -1903,7 +1914,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     z-index: 3;
 }
 .format-tiles .tile:not(.phototile) {
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
 }
 .format-tiles .tile-bg,
 .format-tiles .tile-link {
@@ -1914,7 +1925,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     left: 0;
 }
 .format-tiles.format-tiles-high-contrast .tile-bg {
-    background-color: #fff;
+    background-color: var(--bs-white, #ffffff);
     border: 1px solid var(--format-tiles-colour);
 }
 .format-tiles.format-tiles-high-contrast li.tile.phototile .tile-link {
@@ -2113,7 +2124,7 @@ allow tiles to be taller and thinner so can fit two side by side in portrait on 
     .format-tiles .course-content .section {
         /* stylelint-disable-next-line declaration-no-important */
         margin-left: 0 !important;
-        background-color: #fff;
+        background-color: var(--bs-white, #ffffff);
     }
     .format-tiles ul.tiles li.section .format-tiles_section_content {
         /* stylelint-disable-next-line declaration-no-important */
@@ -2167,7 +2178,7 @@ allow tiles to be taller and thinner so can fit two side by side in portrait on 
     }
     .format-tiles .collapsiblesec0.expanded .buttonhidesec0 {
         /* stylelint-disable-next-line declaration-no-important */
-        background-color: rgba(255, 255, 255, 1) !important;
+        background-color: var(--bs-white, #ffffff) !important;
     }
     .format-tiles .progress-indic.percent {
         font-size: 0.7em;
@@ -2226,7 +2237,7 @@ allow tiles to be taller and thinner so can fit two side by side in portrait on 
     right: 0px;
     bottom: 10px;
     display: inline-block;
-    background:#c35b42;
+    background:var(--bs-danger, #c35b42);
     color:white;
     -webkit-clip-path:polygon(0 0, 100% 0%, 100% 100%, 0 100%, 20% 50%);
     clip-path:polygon(0 0, 100% 0%, 100% 100%, 0 100%, 20% 50%);
