@@ -1,13 +1,13 @@
 # Test coverage — format_tiles fork
 
-Scope: `master-forked`, release 5.2.3, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
+Scope: `master-forked`, release 5.2.4, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
 
 ## Suite inventory
 
 | Suite | Files | Cases |
 |---|---|---|
 | PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (10 files) | 89 methods (102 cases with data sets) |
-| Behat | `tests/behat/*.feature` (32 features) | 79 scenarios, `@format_tiles` |
+| Behat | `tests/behat/*.feature` (32 features) | 80 scenarios, `@format_tiles` |
 
 ## (1) Deprecated-API removal / Moodle 6 uplift
 
@@ -80,6 +80,7 @@ Scope: `master-forked`, release 5.2.3, Moodle 5.3 LTS – 6.0. Every row records
 | No full-page navigation on highlight | `amd/src/mutations.js:103` (`CourseActions.addActions`) | `section_highlight.feature` page-sentinel steps |
 | In-place Highlight ↔ Unhighlight swap | `amd/src/section.js:64-70` | `section_highlight.feature` menu-text steps |
 | No duplicate mutation registration | `classes/local/util.php:285-286` (single `js_call_amd` hook) | backlog (covered indirectly by the same feature) |
+| Returning via a section page or `#module` anchor presents the seeded tile | `amd/src/course.js:432-436` (`expandSection` tests the panel's state, not the pending `openTile`) | `tests/behat/javascript_nav.feature` "Returning to a tile's section page presents the tile content again" |
 
 ## (6) Hardening for the staging install (5.2.3)
 
