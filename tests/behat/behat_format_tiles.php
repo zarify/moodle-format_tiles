@@ -1367,4 +1367,76 @@ class behat_format_tiles extends behat_base {
             );
         }
     }
+
+    /**
+     * Visit the section page the tile's breadcrumb link points at, i.e. /course/section.php?id=<sectionid>.
+     *
+     * @When /^I visit the section page for tile "(?P<tilenumber>\d+)"$/
+     * @param int $tilenumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_visit_the_section_page_for_tile($tilenumber) {
+        $url = $this->evaluate_tiles_js('
+            const tile = document.getElementById("tile-' . (int)$tilenumber . '");
+            const sectionid = tile ? tile.dataset.trueSectionid : "";
+            return sectionid ? (M.cfg.wwwroot + "/course/section.php?id=" + sectionid) : "";
+        ');
+        if ($url === '') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "tile-" . (int)$tilenumber . " is missing or has no data-true-sectionid",
+                $this->getSession()
+            );
+        }
+        $this->getSession()->visit($url);
+    }
+
+    /**
+     * Check a tile is presented the way a tile click presents it: content visible, backdrop up, body marked open.
+     *
+     * Polls because the tile is presented through a jQuery slide down and fade in, not synchronously.
+     *
+     * @Then /^tile "(?P<tilenumber>\d+)" content should be presented$/
+     * @param int $tilenumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function tile_content_should_be_presented($tilenumber) {
+        $problems = '';
+        for ($attempt = 0; $attempt < 15; $attempt++) {
+            $problems = $this->evaluate_tiles_js('
+                const n = ' . (int)$tilenumber . ';
+                const problems = [];
+                const tile = document.getElementById("tile-" + n);
+                if (!tile) {
+                    return "tile-" + n + " is missing";
+                }
+                if (!tile.classList.contains("selected")) {
+                    problems.push("tile-" + n + " is not selected");
+                }
+                const section = document.getElementById("section-" + n);
+                if (!section) {
+                    problems.push("section-" + n + " is missing");
+                } else if (window.getComputedStyle(section).display === "none") {
+                    problems.push("section-" + n + " is hidden");
+                }
+                const overlay = document.getElementById("format_tiles_overlay");
+                if (!overlay) {
+                    problems.push("the overlay is missing");
+                } else if (window.getComputedStyle(overlay).display === "none") {
+                    problems.push("the overlay is not shown");
+                }
+                if (!document.body.classList.contains("format-tiles-tile-open")) {
+                    problems.push("the body lacks format-tiles-tile-open");
+                }
+                return problems.join("; ");
+            ');
+            if ($problems === '') {
+                return;
+            }
+            $this->getSession()->wait(200);
+        }
+        throw new \Behat\Mink\Exception\ExpectationException(
+            "Tile " . (int)$tilenumber . " is not presented: $problems",
+            $this->getSession()
+        );
+    }
 }

@@ -431,7 +431,9 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
 
             // A subsection inside the tile that is already open must not close and reopen it: setOverlayHeight()
             // leaves the content area hidden for the slide down, so it may only run when the tile is changing.
-            const alreadyOpen = openTile === sectionNumber;
+            // Test the panel's real state, not openTile: openTile is also the pending open target seeded from
+            // the section.php URL (or a #module anchor), and on that first open the tile is not presented yet.
+            const alreadyOpen = contentArea.is(':visible') && contentArea.hasClass(ClassNames.STATE_VISIBLE);
             if (subSectionId) {
                 // Open the subsection before measuring, so the overlay covers it and the scroll target is settled.
                 const panel = document.getElementById('coursecontentcollapseid' + subSectionId);

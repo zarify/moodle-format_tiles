@@ -61,6 +61,17 @@ Feature: Interface can be enhabced with JS nav if allowed by site admin
     And section "2" should be visible
     And section "3" should be visible
 
+  @javascript
+  Scenario: Returning to a tile's section page presents the tile content again
+    When I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I click on tile "2"
+    And I wait until the page is ready
+    Then tile "2" content should be presented
+    When I visit the section page for tile "2"
+    And I wait until the page is ready
+    Then tile "2" content should be presented
+
   Scenario: Open section 1 then close and open section 2 without JS as student
     When the following config values are set as admin:
       | config           | value | plugin       |
