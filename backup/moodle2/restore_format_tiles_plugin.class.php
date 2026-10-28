@@ -166,7 +166,7 @@ class restore_format_tiles_plugin extends restore_format_plugin {
         global $DB;
         if ($this->is_tiles_course()) {
             $data = $this->connectionpoint->get_data();
-            if (isset($data['path']) && $data['path'] = '/section' && isset($data['tags']['id'])) {
+            if (isset($data['path']) && $data['path'] == '/section' && isset($data['tags']['id'])) {
                 $oldsectionid = $data['tags']['id'];
                 $oldsectionnum = $data['tags']['number'];
 

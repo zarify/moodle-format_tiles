@@ -225,6 +225,70 @@ final class upgrade_test extends \advanced_testcase {
     }
 
     /**
+     * The 2026102700 step re-queues legacy migrations whose adhoc tasks were lost.
+     */
+    public function test_upgrade_2026102700_requeues_lost_migration_tasks(): void {
+        global $DB;
+        $this->resetAfterTest();
+        set_config('version', 2026102201, 'format_tiles');
+
+        $course = $this->getDataGenerator()->create_course(['format' => 'tiles'], ['createsections' => true]);
+        helper_set_legacy_tilephoto($course->id, 1, 'placeholder_1.jpg');
+        helper_set_legacy_tile_icon($course->id, 2, 'map-o');
+
+        // The new options table already exists: the site upgraded to 5.2.0 long ago, but the tasks it queued were lost.
+        $this->assertTrue($DB->get_manager()->table_exists('format_tiles_tile_options'));
+        $DB->delete_records('task_adhoc', [
+            'component' => 'format_tiles',
+            'classname' => '\format_tiles\task\migrate_legacy_data',
+        ]);
+
+        $this->assertTrue(xmldb_format_tiles_upgrade(2026102201));
+
+        $tasks = $DB->get_records('task_adhoc', [
+            'component' => 'format_tiles',
+            'classname' => '\format_tiles\task\migrate_legacy_data',
+        ]);
+        $this->assertCount(1, $tasks);
+        $this->assertEquals($course->id, (int)json_decode(reset($tasks)->customdata)->courseid);
+
+        // The migration itself is done by the task, so the legacy rows are still there.
+        $this->assertTrue($DB->record_exists('course_format_options', [
+            'courseid' => $course->id,
+            'format' => 'tiles',
+            'name' => 'tilephoto',
+        ]));
+    }
+
+    /**
+     * The 2026102700 step must not queue a second migration on sites upgrading from before 2024020200,
+     * where the 2024020200 step queues it in the same run.
+     */
+    public function test_upgrade_2026102700_does_not_duplicate_pre_2024020200_queueing(): void {
+        global $DB;
+        $this->resetAfterTest();
+        set_config('version', 2024010100, 'format_tiles');
+
+        $course = $this->getDataGenerator()->create_course(['format' => 'tiles'], ['createsections' => true]);
+        helper_set_legacy_tilephoto($course->id, 1, 'placeholder_1.jpg');
+
+        // A site upgrading from 2024 does not have the new options table yet.
+        $DB->get_manager()->drop_table(new \xmldb_table('format_tiles_tile_options'));
+        $DB->delete_records('task_adhoc', [
+            'component' => 'format_tiles',
+            'classname' => '\format_tiles\task\migrate_legacy_data',
+        ]);
+
+        $this->assertTrue(xmldb_format_tiles_upgrade(2024010100));
+
+        $this->assertTrue($DB->get_manager()->table_exists('format_tiles_tile_options'));
+        $this->assertCount(1, $DB->get_records('task_adhoc', [
+            'component' => 'format_tiles',
+            'classname' => '\format_tiles\task\migrate_legacy_data',
+        ]));
+    }
+
+    /**
      * The 2025060267 step enables subsection progress counting by default.
      */
     public function test_upgrade_2025060267_sets_progress_default(): void {
@@ -314,6 +378,14 @@ final class upgrade_test extends \advanced_testcase {
         );
         $this->assertNotEmpty($storedfile);
         $this->assertGreaterThan(0, $storedfile->get_filesize());
-        $this->assertEquals(2026012570, get_config('format_tiles', 'version'));
+        // The 2026102700 step only re-queues the legacy migration for this course (its rows are migrated by the task),
+        // so the upgrade itself still changes no stored data.
+        $tasks = $DB->get_records('task_adhoc', [
+            'component' => 'format_tiles',
+            'classname' => '\format_tiles\task\migrate_legacy_data',
+        ]);
+        $this->assertCount(1, $tasks);
+        $this->assertEquals($course->id, (int)json_decode(reset($tasks)->customdata)->courseid);
+        $this->assertEquals(2026102700, get_config('format_tiles', 'version'));
     }
 }

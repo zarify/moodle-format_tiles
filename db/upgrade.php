@@ -243,5 +243,26 @@ function xmldb_format_tiles_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2025060267, 'format', 'tiles');
     }
 
+    if ($oldversion < 2026102700) {
+        // Legacy tile photo/icon migration is queued once, inside the 2024020200 block above, which only runs
+        // when the new options table is first created. If the adhoc tasks queued there are lost (e.g. the queue
+        // is cleared) the migration never happens, because that block never runs again. The migration deletes
+        // each legacy course_format_options row as it is migrated, so "legacy rows still exist" is exactly
+        // "migration incomplete" and re-queueing on that condition is safe and idempotent.
+        if ($oldversion >= 2024020200) {
+            // Upgrades from before 2024020200 queue these themselves in the same run, so skip them here.
+            $legacycourses = $DB->get_fieldset_sql(
+                "SELECT DISTINCT courseid FROM {course_format_options}
+                WHERE format = 'tiles' AND name IN ('tilephoto', 'tileicon')"
+            );
+            foreach ($legacycourses as $courseid) {
+                $task = new \format_tiles\task\migrate_legacy_data();
+                $task->set_custom_data(['courseid' => (int)$courseid]);
+                \core\task\manager::queue_adhoc_task($task);
+            }
+        }
+        upgrade_plugin_savepoint(true, 2026102700, 'format', 'tiles');
+    }
+
     return true;
 }
