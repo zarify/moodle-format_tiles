@@ -1,12 +1,12 @@
 # Test coverage — format_tiles fork
 
-Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
+Scope: `master-forked`, release 5.2.3, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
 
 ## Suite inventory
 
 | Suite | Files | Cases |
 |---|---|---|
-| PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (8 files) | 76 methods (89 cases with data sets) |
+| PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (10 files) | 89 methods (102 cases with data sets) |
 | Behat | `tests/behat/*.feature` (32 features) | 79 scenarios, `@format_tiles` |
 
 ## (1) Deprecated-API removal / Moodle 6 uplift
@@ -46,8 +46,10 @@ Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records
 |---|---|---|
 | 2018080103 legacy option renames/cleanups | `db/upgrade.php:56-139` | `tests/upgrade_test.php::test_upgrade_2018080103_renames_and_cleans_options` |
 | 2024020200 table creation and migration queue | `db/upgrade.php:179-219` | `tests/upgrade_test.php::test_upgrade_2024020200_queues_legacy_migration` |
-| 2025060267 subsection progress default | `db/upgrade.php:241-243` | `tests/upgrade_test.php::test_upgrade_2025060267_sets_progress_default` |
-| Changeover from 5.1.0.2 (`2026012570`) is data-neutral | `db/upgrade.php` (no savepoint below the current release) | `tests/upgrade_test.php::test_changeover_from_5102_is_a_noop` |
+| 2025060267 subsection progress default | `db/upgrade.php:241-244` | `tests/upgrade_test.php::test_upgrade_2025060267_sets_progress_default` |
+| 2026102700 re-queues a lost legacy migration | `db/upgrade.php:246-265` | `tests/upgrade_test.php::test_upgrade_2026102700_requeues_lost_migration_tasks` |
+| 2026102700 does not double-queue on a pre-2024020200 upgrade | `db/upgrade.php:252` | `tests/upgrade_test.php::test_upgrade_2026102700_does_not_duplicate_pre_2024020200_queueing` |
+| Changeover from 5.1.0.2 (`2026012570`) keeps stored data unchanged (it only queues the legacy migration) | `db/upgrade.php` (2026102700 savepoint) | `tests/upgrade_test.php::test_changeover_from_5102_is_a_noop` |
 | Adhoc legacy migration | `classes/task/migrate_legacy_data.php` | `tests/format_tiles_course_format_options_test.php::test_migrate_legacy_data_task` |
 | MBZ restore of all four fixture backups | `backup/moodle2/restore_format_tiles_plugin.class.php` | `tests/format_tiles_course_format_options_test.php::test_restore_from_old_format_mbz` (4 data sets) |
 | Install floor | `version.php:28` | `2026100500` (5.3) — `/admin/plugins.php` smoke on 5.3 |
@@ -78,3 +80,22 @@ Scope: `master-forked`, release 5.2.2, Moodle 5.3 LTS – 6.0. Every row records
 | No full-page navigation on highlight | `amd/src/mutations.js:103` (`CourseActions.addActions`) | `section_highlight.feature` page-sentinel steps |
 | In-place Highlight ↔ Unhighlight swap | `amd/src/section.js:64-70` | `section_highlight.feature` menu-text steps |
 | No duplicate mutation registration | `classes/local/util.php:285-286` (single `js_call_amd` hook) | backlog (covered indirectly by the same feature) |
+
+## (6) Hardening for the staging install (5.2.3)
+
+| Surface | Location | Guard |
+|---|---|---|
+| Dark-mode tokens on tiles, section cards, subtiles, icon picker, filter bar and tooltips | `styles.css` (sites listed in the 5.2.3 changelog), `styles_adaptable.css:16-19` | visual proof on 6.0 with `data-bs-theme="dark"` (light + edit mode); `@format_tiles` Behat unchanged |
+| Dark palette counterpart for the high contrast text colour | `templates/dynamic_styles.mustache:71-74` | `tests/format_tiles_dynamic_styles_test.php::test_dark_mode_palette_repoints_high_contrast_text` |
+| Custom CSS cannot close its `<style>` element or a script | `classes/local/dynamic_styles.php:97-105` | `tests/format_tiles_dynamic_styles_test.php::test_customcss_cannot_break_out_of_style_tag` |
+| `set_image` draftfile: caller's own draft area only, photo stored in the course context | `classes/external/external.php:147-162` | `tests/format_tiles_externallib_test.php::test_set_image_draftfile_rejects_foreign_draft`, `::test_set_image_draftfile_stores_in_course_context` |
+| `set_image` image name uses `PARAM_FILE` | `classes/external/external.php:364` | `tests/format_tiles_externallib_test.php::test_set_image`, `::test_set_image_allows_editing_teacher` (icon names still accepted) |
+| `log_tile_click` accepts a course context and a non-negative section number only | `classes/external/external.php:411-420` | `tests/format_tiles_externallib_test.php::test_log_tile_click_rejects_non_course_context` |
+| `skipcheck` link requires a sesskey | `classes/local/util.php:199-205`, `templates/multi_section_page.mustache:56` | code review — the escape link is only rendered on the loading page, not exercised by Behat |
+| `canceljssession` requires a sesskey | `classes/output/renderer.php:131-136` | code review — no in-plugin link generates this parameter |
+| `require_login()` in both fragment callbacks | `lib.php:1034,1096` | `tests/format_tiles_fragment_test.php` (non-enrolled user); `@format_tiles_mod_modal` Behat |
+| Fragment callback gates and rendering (login, hidden section, non-tiles course, context level, page body) | `lib.php:1032-1142` | `tests/format_tiles_fragment_test.php` (6 cases) |
+| Install sample-image copy skips an existing file | `db/install.php:46-56` | not unit testable (install runs before the PHPUnit site exists); mirrors the guarded upgrade block |
+| Restore section path check uses `==` | `backup/moodle2/restore_format_tiles_plugin.class.php:169` | `tests/format_tiles_course_format_options_test.php::test_restore_from_old_format_mbz` (4 data sets) |
+| Completion data fetched once per module per render | `classes/output/course_output.php:105-112,722-734` | behaviour: `tests/format_tiles_test.php::test_non_displayable_module_is_not_rendered` (section progress); call count: measured at 2.55 us per call |
+| Dynamic CSS template source read once per request | `classes/local/dynamic_styles.php:84-93` | `tests/format_tiles_dynamic_styles_test.php` renders through the same template; page output unchanged |

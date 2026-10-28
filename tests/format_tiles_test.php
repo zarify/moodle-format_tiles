@@ -38,7 +38,7 @@ require_once($CFG->dirroot . '/course/lib.php');
  */
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\format_option::class, 'set')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles::class, 'update_course_format_options')]
-#[\PHPUnit\Framework\Attributes\CoversClass(\format_tiles_inplace_editable::class)]
+#[\PHPUnit\Framework\Attributes\CoversFunction('format_tiles_inplace_editable')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\video_cm::class, 'check_modify_embedded_url')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_resource_modal_cmids')]
 #[\PHPUnit\Framework\Attributes\CoversMethod(\format_tiles\local\modal_helper::class, 'get_modal_allowed_cm_ids')]

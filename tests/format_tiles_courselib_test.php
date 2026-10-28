@@ -41,6 +41,7 @@ use cache;
  * @copyright 2018 David Watson {@link http://evolutioncode.uk} based on core version 2012 Petr Skoda {@link http://skodak.org}
  * @license http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+#[\PHPUnit\Framework\Attributes\CoversNothing]
 final class format_tiles_courselib_test extends \advanced_testcase {
 
     /**
