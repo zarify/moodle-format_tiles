@@ -715,7 +715,7 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
                     const isMultiSectionPage = $(Selector.TILES).length === 1;
 
                     if (useSubTiles) {
-                        // We need to be able to style tooltips outside of ul.tiles element.
+                        // Theme- and custom-CSS-facing marker for subtile layouts.
                         $(Selector.BODY).addClass('format-tiles-subtiles');
                     }
                     var pageContent = $("#page-content");

@@ -76,11 +76,16 @@
         {{#dates}}
             {{#hasdates}}
                 <div data-region="activity-dates" class="activity-dates me-sm-2">
-                    {{#activitydates}}
-                        {{$core_course/activity_date}}
-                            {{>core_course/activity_date}}
-                        {{/core_course/activity_date}}
-                    {{/activitydates}}
+                    {{#activitydatesishtml}}
+                        {{{activitydates}}}
+                    {{/activitydatesishtml}}
+                    {{^activitydatesishtml}}
+                        {{#activitydates}}
+                            {{$core_course/activity_date}}
+                                {{>core_course/activity_date}}
+                            {{/core_course/activity_date}}
+                        {{/activitydates}}
+                    {{/activitydatesishtml}}
                 </div>
             {{/hasdates}}
         {{/dates}}

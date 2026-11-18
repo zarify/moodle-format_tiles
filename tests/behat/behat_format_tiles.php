@@ -1439,4 +1439,226 @@ class behat_format_tiles extends behat_base {
             $this->getSession()
         );
     }
+
+    /**
+     * Click an activity name, selecting it by course module idnumber.
+     *
+     * Step arguments cannot carry double quotes unambiguously, so activities whose names contain
+     * quotes are addressed by idnumber.
+     *
+     * @Given /^I click the format tiles activity with idnumber "(?P<idnumber>(?:[^"]|\\")*)"$/
+     * @param string $idnumber the course module idnumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_click_the_format_tiles_activity_with_idnumber($idnumber) {
+        $cmid = $this->get_tiles_cm_id_by_idnumber($idnumber);
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(100);
+        $result = $this->evaluate_tiles_js('
+            const container = document.querySelector("#page-content [data-cmid=\'' . $cmid . '\']");
+            if (!container) {
+                return "missing";
+            }
+            const link = container.matches("a") ? container : container.querySelector("a");
+            if (!link) {
+                return "nolink";
+            }
+            link.click();
+            return "clicked";
+        ');
+        $this->wait_for_tiles_activity_modal($result);
+    }
+
+    /**
+     * Click an activity entry in the course index, selected by course module idnumber.
+     *
+     * @Given /^I click the tiles course index activity with idnumber "(?P<idnumber>(?:[^"]|\\")*)"$/
+     * @param string $idnumber the course module idnumber
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function i_click_the_tiles_course_index_activity_with_idnumber($idnumber) {
+        $cmid = $this->get_tiles_cm_id_by_idnumber($idnumber);
+        $this->wait_for_pending_js();
+        $result = $this->evaluate_tiles_js('
+            const link = document.querySelector(
+                "nav#courseindex li.courseindex-item[data-id=\'' . $cmid . '\'] a.courseindex-link"
+            );
+            if (!link) {
+                return "missing";
+            }
+            link.click();
+            return "clicked";
+        ');
+        $this->wait_for_tiles_activity_modal($result);
+    }
+
+    /**
+     * Check the open activity modal heading shows the plain activity name.
+     *
+     * The expected name is given as a table row so it may contain any quote character.
+     *
+     * @Then /^the tiles activity modal title should read$/
+     * @param \Behat\Gherkin\Node\TableNode $expected the expected name, one cell
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_modal_title_should_read(\Behat\Gherkin\Node\TableNode $expected) {
+        $name = $this->single_expected_name($expected);
+        $actual = $this->evaluate_tiles_js('
+            const modals = document.querySelectorAll(".modal.show.embed_cm_modal");
+            if (modals.length !== 1) {
+                return "modals:" + modals.length;
+            }
+            const title = modals[0].querySelector(".modal-title");
+            return (title ? title.textContent : "").trim();
+        ');
+        if ($actual !== $name) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the activity modal title '$name', found '$actual'",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Check the open activity modal iframe title is the plain activity name.
+     *
+     * The expected name is given as a table row so it may contain any quote character.
+     *
+     * @Then /^the tiles activity modal iframe title should read$/
+     * @param \Behat\Gherkin\Node\TableNode $expected the expected name, one cell
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_activity_modal_iframe_title_should_read(\Behat\Gherkin\Node\TableNode $expected) {
+        $name = $this->single_expected_name($expected);
+        $actual = $this->evaluate_tiles_js('
+            const modals = document.querySelectorAll(".modal.show.embed_cm_modal");
+            if (modals.length !== 1) {
+                return "modals:" + modals.length;
+            }
+            const iframe = modals[0].querySelector("iframe");
+            return iframe ? iframe.getAttribute("title") : "noiframe";
+        ');
+        if ($actual !== $name) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Expected the activity modal iframe title '$name', found '$actual'",
+                $this->getSession()
+            );
+        }
+    }
+
+    /**
+     * Read the single expected name from a one-cell table.
+     *
+     * @param \Behat\Gherkin\Node\TableNode $expected the expected name
+     * @return string
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function single_expected_name(\Behat\Gherkin\Node\TableNode $expected): string {
+        $names = $expected->getColumn(0);
+        if (count($names) !== 1 || trim((string)$names[0]) === '') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                'Expected exactly one activity name in the table',
+                $this->getSession()
+            );
+        }
+        return $names[0];
+    }
+
+    /**
+     * Look up the course module id for an idnumber in the course being viewed.
+     *
+     * @param string $idnumber the course module idnumber
+     * @return int
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function get_tiles_cm_id_by_idnumber(string $idnumber): int {
+        global $DB;
+        $courseid = $this->get_tiles_current_course_id();
+        $cmid = $DB->get_field('course_modules', 'id', ['idnumber' => $idnumber, 'course' => $courseid]);
+        if (!$cmid) {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "No course module with idnumber '$idnumber' in course $courseid",
+                $this->getSession()
+            );
+        }
+        return (int)$cmid;
+    }
+
+    /**
+     * Wait for an activity modal to open after a click.
+     *
+     * @param string $clickresult the result reported by the click script
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function wait_for_tiles_activity_modal($clickresult) {
+        if ($clickresult !== 'clicked') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Could not click the activity ($clickresult)",
+                $this->getSession()
+            );
+        }
+        $this->getSession()->wait(self::get_timeout() * 1000, "document.querySelector('.modal.show.embed_cm_modal') !== null");
+        $this->wait_for_pending_js();
+        $this->getSession()->wait(1000);
+    }
+
+    /**
+     * Check a section wrapper exposes core's parsed return options and no legacy empty attribute.
+     *
+     * @Then /^the tiles section "(?P<section_number>\d+)" should expose core return options$/
+     * @param int $sectionnumber the section number
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_section_should_expose_core_return_options($sectionnumber) {
+        $this->assert_tiles_return_options('#section-' . (int)$sectionnumber);
+    }
+
+    /**
+     * Check a delegated subsection wrapper exposes core's parsed return options.
+     *
+     * @Then /^the tiles delegated section "(?P<section_number>\d+)" should expose core return options$/
+     * @param int $sectionnumber the section number
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    public function the_tiles_delegated_section_should_expose_core_return_options($sectionnumber) {
+        $this->assert_tiles_return_options('#section-' . (int)$sectionnumber . '.delegated-section');
+    }
+
+    /**
+     * Assert a section wrapper carries usable core return options.
+     *
+     * @param string $selector the wrapper selector
+     * @throws \Behat\Mink\Exception\ExpectationException
+     */
+    private function assert_tiles_return_options(string $selector) {
+        $result = $this->evaluate_tiles_js('
+            const section = document.querySelector(' . json_encode($selector) . ');
+            if (!section) {
+                return "missing";
+            }
+            if (section.hasAttribute("data-sectionreturnid")) {
+                return "legacy attribute present";
+            }
+            const raw = section.getAttribute("data-returnoptions");
+            if (!raw) {
+                return "no return options";
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (e) {
+                return "unparsable return options: " + raw;
+            }
+            if (typeof parsed !== "object" || parsed === null) {
+                return "return options are not an object: " + raw;
+            }
+            return "ok";
+        ');
+        if ($result !== 'ok') {
+            throw new \Behat\Mink\Exception\ExpectationException(
+                "Section $selector return options: $result",
+                $this->getSession()
+            );
+        }
+    }
 }

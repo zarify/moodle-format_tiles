@@ -102,6 +102,10 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                 cmId, moduleContextId, sectionNum, title, objectType,
                 completionEnabled, existingCompletionState, isManualCompletion, descriptionHTML
             ) {
+            // The title arrives as formatted HTML (it is stored in a data-title attribute and decoded once by the
+            // browser), but the modal templates insert it into escaped text sinks. Decode once more here so the
+            // iframe title and header data carry plain text, while core's modal keeps inserting the HTML title.
+            const activityNameText = $("<textarea>").html(title || "").val();
             Modal.create({
                 title: title,
                 body: loadingIconHtml
@@ -142,7 +146,7 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                         tileid: sectionNum,
                         isediting: 0,
                         sesskey: config.sesskey,
-                        activityname: title,
+                        activityname: activityNameText,
                         config: {wwwroot: config.wwwroot},
                         completionstring: '',
                         description: descriptionHTML
@@ -198,7 +202,7 @@ define(["jquery", "core/modal", "core/config", "core/templates", "core/notificat
                 // Render the modal header / title and set it to the page.
                 var headerTemplateData = {
                     cmid: cmId,
-                    activityname: title,
+                    activityname: activityNameText,
                     tileid: sectionNum,
                     showDownload: objectType === "pdf" ? 1 : 0,
                     showNewWindow: ["pdf", 'url'].includes(objectType) ? 1 : 0,

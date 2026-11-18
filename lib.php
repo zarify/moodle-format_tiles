@@ -533,6 +533,12 @@ class format_tiles extends core_courseformat\base {
                 $label = get_string('tileoutcome', 'format_tiles') . ' ' . $outcomeslink;
                 $outcomes = \format_tiles\local\filters::get_course_outcomes($course->id);
                 if (!empty($outcomes)) {
+                    // Select option labels are written into the form as HTML, so format each outcome name in the
+                    // course context rather than inserting the raw grade_outcome fullname.
+                    $coursecontext = \context_course::instance($course->id);
+                    foreach ($outcomes as $outcomeid => $outcomename) {
+                        $outcomes[$outcomeid] = format_string($outcomename, true, ['context' => $coursecontext]);
+                    }
                     $outcomes[0] = get_string('none', 'format_tiles');
                 }
                 $sectionformatoptionsedit['tileoutcomeid'] = [

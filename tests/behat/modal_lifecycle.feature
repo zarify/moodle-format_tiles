@@ -10,9 +10,10 @@ Feature: Modal lifecycle regressions
       | fullname | shortname | format | coursedisplay | numsections | enablecompletion |
       | Course 1 | C1-modal  | tiles  | 0             | 5           | 1                |
     And the following "activities" exist:
-      | activity | name           | intro                 | course   | idnumber | section | visible | completion | defaultfilename                             | uploaded |
-      | page     | Test page name | Test page description | C1-modal | page1    | 1       | 1       | 0          |                                             | 0        |
-      | resource | Test PDF       | File description      | C1-modal | pdf1     | 1       | 1       | 1          | course/format/tiles/tests/fixtures/test.pdf | 1        |
+      | activity | name                    | intro                 | course   | idnumber | section | visible | completion | defaultfilename                             | uploaded |
+      | page     | Test page name          | Test page description | C1-modal | page1    | 1       | 1       | 0          |                                             | 0        |
+      | resource | Test PDF                | File description      | C1-modal | pdf1     | 1       | 1       | 1          | course/format/tiles/tests/fixtures/test.pdf | 1        |
+      | resource | Slides "Intro" & notes' | File description      | C1-modal | pdf-name | 1       | 1       | 0          | course/format/tiles/tests/fixtures/test.pdf | 1        |
     And the following "course enrolments" exist:
       | user     | course   | role           |
       | student1 | C1-modal | student        |
@@ -92,3 +93,42 @@ Feature: Modal lifecycle regressions
     And I wait "1" seconds
     And I double click the tiles icon picker for tile "1"
     Then there should be exactly one open icon picker
+
+  @javascript
+  Scenario: Activity names survive modal title and iframe text boundaries
+    # The activity is addressed by idnumber because its name carries quote characters.
+    When format_tiles subtiles are off for course "Course 1"
+    And I log in as "student1"
+    And I am on "Course 1" course homepage
+    And I wait until the page is ready
+    And I click on tile "1"
+    And I wait until the page is ready
+    And I click the format tiles activity with idnumber "pdf-name"
+    And I wait until the page is ready
+    Then the tiles activity modal title should read
+      | Slides "Intro" & notes' |
+    And the tiles activity modal iframe title should read
+      | Slides "Intro" & notes' |
+
+    When format_tiles subtiles are on for course "Course 1"
+    And I am on "Course 1" course homepage
+    And I wait until the page is ready
+    And I click on tile "1"
+    And I wait until the page is ready
+    And I click the format tiles activity with idnumber "pdf-name"
+    And I wait until the page is ready
+    Then the tiles activity modal title should read
+      | Slides "Intro" & notes' |
+    And the tiles activity modal iframe title should read
+      | Slides "Intro" & notes' |
+
+    When I am on "Course 1" course homepage
+    And I wait until the page is ready
+    And I click on tile "1"
+    And I wait until the page is ready
+    And I click the tiles course index activity with idnumber "pdf-name"
+    And I wait until the page is ready
+    Then the tiles activity modal title should read
+      | Slides "Intro" & notes' |
+    And the tiles activity modal iframe title should read
+      | Slides "Intro" & notes' |

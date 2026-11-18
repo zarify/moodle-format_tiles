@@ -47,6 +47,12 @@ class cm extends core_cm {
         $parentadded = parent::add_format_data($data, $haspartials, $output);
         $data->cmtitle = $this->mod->get_formatted_name();
 
+        // Core 6.0 renders activity dates as pre-rendered component HTML in a string; earlier supported cores
+        // expose an array of label/datestring pairs. Tell the template which context it is holding.
+        if (isset($data->dates) && is_object($data->dates)) {
+            $data->dates->activitydatesishtml = is_string($data->dates->activitydates ?? null);
+        }
+
         // See also the higher level section where moodle release info is added e.g. ismoodle42minus.
         // I.e. format_tiles\output\courseformat\content\section.
         // However we can't rely on that here.

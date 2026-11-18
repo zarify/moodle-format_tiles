@@ -115,6 +115,12 @@ Feature: Users view subsections on course page in tiles format
     And I press "Save and return to course"
     And I click on "a[data-bs-toggle='collapse']" "css_element" in the "Subsection1" "activity"
     Then I should see "Assignment1 in Subsection1" in the "Subsection1" "activity"
+    # Returning from the activity form must land on the parent section, with both wrappers carrying core's
+    # return options so core can rebuild section and subsection links.
+    And I should see "Subsection1" in the "region-main" "region"
+    And I should see "Subsection2" in the "region-main" "region"
+    And the tiles section "1" should expose core return options
+    And the tiles delegated section "4" should expose core return options
     # Add an assignment to the empty Subsection2.
     And I add an "assign" activity to course "Course 1" section "4" and I fill the form with:
       | Assignment name | Assignment1 in Subsection2 |

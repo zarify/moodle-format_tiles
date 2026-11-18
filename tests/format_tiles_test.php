@@ -924,4 +924,256 @@ final class format_tiles_test extends \advanced_testcase {
         unset_config('maxsections', 'moodlecourse');
         $this->assertSame(52, \format_tiles\local\course_section_manager::get_max_sections());
     }
+
+    /**
+     * Accessible tile and module icon names are plain text: markup stripped, entities decoded exactly once,
+     * and author text never becomes markup or an event handler attribute.
+     */
+    public function test_course_output_accessible_names_are_decoded_once(): void {
+        global $PAGE, $DB, $OUTPUT;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions, ['createsections' => true]);
+        $renderer = $PAGE->get_renderer('core_course');
+
+        // A harmless name gives the baseline element count for the same tile.
+        $DB->set_field('course_sections', 'name', 'Plain section', ['course' => $course->id, 'section' => 1]);
+        rebuild_course_cache($course->id, true);
+        $baselinehtml = $OUTPUT->render_from_template(
+            'format_tiles/multi_section_tile',
+            $this->export_section_tile($course, 1, $renderer)
+        );
+        $baselineimages = substr_count($baselinehtml, '<img');
+
+        $names = [
+            'A & B',
+            'AT&amp;T',
+            '<b>Bold</b>',
+            'Slides "Intro"',
+            'Slides" onmouseover="window.__tilesUnexpected=1',
+        ];
+        foreach ($names as $name) {
+            $DB->set_field('course_sections', 'name', $name, ['course' => $course->id, 'section' => 1]);
+            rebuild_course_cache($course->id, true);
+            $html = $OUTPUT->render_from_template(
+                'format_tiles/multi_section_tile',
+                $this->export_section_tile($course, 1, $renderer)
+            );
+            $plain = html_entity_decode(strip_tags(format_string($name)), ENT_QUOTES | ENT_HTML5);
+
+            $xpath = $this->parse_html($html);
+            $links = $xpath->query('//a[contains(@class, "tile-link")]');
+            $this->assertCount(1, $links, "Expected one tile link for $name");
+            $this->assertSame(
+                get_string('tilearialabel', 'format_tiles', $plain),
+                $links->item(0)->getAttribute('aria-label'),
+                "aria-label is not the plain tile name for $name"
+            );
+            $headings = $xpath->query('//a[contains(@class, "tile-link")]//h3');
+            $this->assertCount(1, $headings, "Expected one tile heading for $name");
+            $this->assertSame($plain, $headings->item(0)->textContent, "Visible heading differs for $name");
+            $this->assertSame(
+                $baselineimages,
+                substr_count($html, '<img'),
+                "Author text created an image element for $name"
+            );
+            $this->assertCount(0, $xpath->query('//*[@onmouseover or @onerror or @onclick]'), "Event handler injected for $name");
+        }
+
+        // The module icon alt text takes the same plain-text treatment.
+        $page = $this->getDataGenerator()->create_module('page', [
+            'course' => $course->id,
+            'section' => 0,
+            'name' => 'placeholder',
+        ]);
+        $pagename = 'Slides" onmouseover="window.__tilesUnexpected=1 & more';
+        $DB->set_field('page', 'name', $pagename, ['id' => $page->id]);
+        rebuild_course_cache($course->id, true);
+
+        $data = (new \format_tiles\output\course_output($course, true))->export_for_template($renderer);
+        $cmitem = null;
+        foreach ($data['section_zero']['content']['course_modules'] as $candidate) {
+            if ((int)$candidate['cmid'] === (int)$page->cmid) {
+                $cmitem = $candidate;
+            }
+        }
+        $this->assertNotNull($cmitem, 'The page module is missing from the section zero output');
+        $this->assertArrayHasKey('icon', $cmitem);
+        $plainpage = html_entity_decode(strip_tags(format_string($pagename)), ENT_QUOTES | ENT_HTML5);
+        $this->assertSame($plainpage, $cmitem['icon']['label'], 'Icon label is not the plain activity name');
+
+        $xpath = $this->parse_html($OUTPUT->render_from_template('format_tiles/tileicon', ['icon' => $cmitem['icon']]));
+        $images = $xpath->query('//img');
+        $this->assertCount(1, $images, 'Expected one module icon image');
+        $this->assertSame($plainpage, $images->item(0)->getAttribute('alt'));
+        $this->assertCount(0, $xpath->query('//*[@onmouseover or @onerror]'));
+    }
+
+    /**
+     * Outcome labels in the section edit select are formatted in the course context, while the shared
+     * outcome helper keeps returning raw names for the filter buttons.
+     */
+    public function test_section_outcome_select_formats_names(): void {
+        global $DB;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        set_config('enableoutcomes', 1);
+
+        $course = $this->getDataGenerator()->create_course($this->tilescourseformatoptions, ['createsections' => true]);
+        $outcome = new \grade_outcome();
+        $outcome->courseid = $course->id;
+        $outcome->shortname = 'lo1';
+        $outcome->fullname = 'placeholder';
+        $outcome->insert();
+        $raw = '<img src=x onerror=alert(1)>A & B "C"';
+        // The outcome name is author controlled and is not cleaned on the way in.
+        $DB->set_field('grade_outcomes', 'fullname', $raw, ['id' => $outcome->id]);
+
+        // Write the option row directly: course_format_options(true) is cached process-wide from the first call,
+        // so going through update_course_format_options() would depend on whether outcomes were enabled by then.
+        $DB->set_field('course_format_options', 'value', (string)format_option::FILTER_OUTCOMES_ONLY, [
+            'courseid' => $course->id,
+            'format' => 'tiles',
+            'sectionid' => 0,
+            'name' => 'displayfilterbar',
+        ]);
+        // The format instance caches the course record, so drop it before reading the section options.
+        \core_courseformat\base::reset_course_cache($course->id);
+        $this->assertSame(
+            format_option::FILTER_OUTCOMES_ONLY,
+            (int)course_get_format($course->id)->get_course()->displayfilterbar,
+            'The course format did not reload the outcome filter option'
+        );
+        $options = course_get_format($course->id)->section_format_options(true);
+        $this->assertArrayHasKey('tileoutcomeid', $options);
+        $selectoptions = $options['tileoutcomeid']['element_attributes'][0];
+        $this->assertArrayHasKey($outcome->id, $selectoptions);
+
+        // html_writer::select inserts option labels unsanitised, so the producer must have formatted the name.
+        // format_string filters the author markup away and escapes the remaining entities exactly once.
+        $html = \html_writer::select($selectoptions, 'tileoutcomeid', 0, false, ['id' => 'tileoutcomeid']);
+        $this->assertStringContainsString('A &amp; B', $html, 'Outcome label is not escaped');
+        $this->assertStringNotContainsString('&amp;amp;', $html, 'Outcome label is escaped twice');
+        $xpath = $this->parse_html($html);
+        $optionnodes = $xpath->query('//option[@value="' . $outcome->id . '"]');
+        $this->assertCount(1, $optionnodes);
+        $option = $optionnodes->item(0);
+        $this->assertSame('A & B "C"', trim($option->textContent), 'Outcome select label is not the sanitised name');
+        $this->assertSame(1, $option->childNodes->length, 'Outcome label created markup');
+        $this->assertCount(0, $xpath->query('//img|//*[@onerror]'), 'Outcome label injected markup');
+
+        // The filter button path keeps the raw contract, so the template escapes it.
+        $this->assertSame($raw, \format_tiles\local\filters::get_course_outcomes($course->id)[$outcome->id]);
+    }
+
+    /**
+     * Activity dates render under both core contracts: array items on 5.3 and component HTML on 6.0.
+     */
+    public function test_activity_dates_rendering_matches_core_context(): void {
+        global $PAGE;
+        $this->resetAfterTest();
+        $this->setAdminUser();
+        $renderer = $PAGE->get_renderer('core_course');
+
+        $duedate = strtotime('2030-01-01 12:00:00 UTC');
+        $course = $this->getDataGenerator()->create_course(
+            $this->tilescourseformatoptions + ['showactivitydates' => 1],
+            ['createsections' => true]
+        );
+        $assignment = $this->getDataGenerator()->create_module('assign', [
+            'course' => $course->id,
+            'section' => 1,
+            'name' => 'Due activity',
+            'duedate' => $duedate,
+        ]);
+
+        [$data, $html] = $this->render_tiles_activity($course, $assignment->cmid, $renderer);
+        $this->assertTrue(isset($data->dates), 'Expected core date data for a due-dated activity');
+        $this->assertStringContainsString('data-region="activity-dates"', $html);
+        if (is_string($data->dates->activitydates)) {
+            // Core renders the dates component itself: its HTML must be inserted, not escaped.
+            $this->assertTrue($data->dates->activitydatesishtml);
+            $this->assertStringContainsString($data->dates->activitydates, $html);
+        } else {
+            $this->assertFalse($data->dates->activitydatesishtml);
+            $this->assertNotEmpty($data->dates->activitydates);
+            foreach ($data->dates->activitydates as $date) {
+                $this->assertNotEmpty($date['datestring']);
+                $this->assertStringContainsString($date['datestring'], $html);
+            }
+        }
+
+        $nodates = $this->getDataGenerator()->create_course(
+            array_merge($this->tilescourseformatoptions, [
+                'shortname' => 'GrowingCourseNoDates',
+                'fullname' => 'Growing Course No Dates',
+                'showactivitydates' => 0,
+            ]),
+            ['createsections' => true]
+        );
+        $plainassignment = $this->getDataGenerator()->create_module('assign', [
+            'course' => $nodates->id,
+            'section' => 1,
+            'name' => 'Due activity',
+            'duedate' => $duedate,
+        ]);
+        [$nodatedata, $nodatehtml] = $this->render_tiles_activity($nodates, $plainassignment->cmid, $renderer);
+        $this->assertFalse(isset($nodatedata->dates), 'Date data must be absent when activity dates are off');
+        $this->assertStringNotContainsString('data-region="activity-dates"', $nodatehtml);
+    }
+
+    /**
+     * Export a section tile from the real course output data.
+     *
+     * @param \stdClass $course the course
+     * @param int $sectionnum the section number
+     * @param \renderer_base $renderer the course renderer
+     * @return array the tile context
+     */
+    private function export_section_tile(\stdClass $course, int $sectionnum, \renderer_base $renderer): array {
+        $data = (new \format_tiles\output\course_output($course, true))->export_for_template($renderer);
+        foreach ($data['tiles'] as $tile) {
+            if ((int)$tile['tileid'] === $sectionnum) {
+                return $tile;
+            }
+        }
+        $this->fail("No tile rendered for section $sectionnum");
+    }
+
+    /**
+     * Export a course module through the Tiles cm exporter and render its activity template.
+     *
+     * @param \stdClass $course the course
+     * @param int $cmid the course module id
+     * @param \renderer_base $renderer the course renderer
+     * @return array the exported cm data and the rendered HTML
+     */
+    private function render_tiles_activity(\stdClass $course, int $cmid, \renderer_base $renderer): array {
+        $modinfo = get_fast_modinfo($course->id);
+        $cm = $modinfo->get_cm($cmid);
+        $exporter = new \format_tiles\output\courseformat\content\cm(
+            course_get_format($course->id),
+            $modinfo->get_section_info($cm->sectionnum),
+            $cm
+        );
+        $data = $exporter->export_for_template($renderer);
+        $html = $renderer->render_from_template('format_tiles/local/content/cm/activity', (array)$data);
+        return [$data, $html];
+    }
+
+    /**
+     * Parse an HTML fragment so assertions read parsed DOM values, not source text.
+     *
+     * @param string $html the fragment
+     * @return \DOMXPath
+     */
+    private function parse_html(string $html): \DOMXPath {
+        $document = new \DOMDocument();
+        $previous = libxml_use_internal_errors(true);
+        $document->loadHTML('<?xml encoding="utf-8"?><div id="tiles-test-root">' . $html . '</div>');
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+        return new \DOMXPath($document);
+    }
 }

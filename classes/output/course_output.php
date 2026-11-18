@@ -574,11 +574,13 @@ class course_output implements \renderable, \templatable {
                 } else {
                     $title = format_string($rawtitle);
                 }
+                // The tile title is formatted HTML, but an aria-label is plain text: strip the markup and
+                // decode the entities so the template's own escaping round-trips to the visible name.
                 $ariatitle = get_string(
                     'tilearialabel',
                     'format_tiles',
                     trim($title)
-                        ? $title
+                        ? html_entity_decode(strip_tags($title), ENT_QUOTES | ENT_HTML5)
                         : get_string('tilearialabel', 'format_tiles', $this->format->get_default_section_name($section))
                 );
                 if ($allowedphototiles && $tilestyle == self::TILE_STYLE_BOTTOM_TITLE && $isphototile) {
@@ -955,7 +957,8 @@ class course_output implements \renderable, \templatable {
 
             $moduleobject['icon'] = [
                 'url' => $modiconurl,
-                'label' => $moduleobject['activityname'],
+                // An alt attribute is plain text; the activity name is formatted HTML.
+                'label' => html_entity_decode(strip_tags($moduleobject['activityname']), ENT_QUOTES | ENT_HTML5),
                 'iconclass' => $iconclass,
             ];
             $moduleobject['tileicon'] = false; // Template is shared with top level tile, so avoiding inheriting parent icon.
