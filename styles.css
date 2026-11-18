@@ -2,14 +2,6 @@
 /*Formerly included in dynamic styles via mustache*/
 /*The variables e.g. --format-tiles-colour are defined in dynamic_styles mustache template*/
 
-/*Danger text colour, mode dependent: core's dark value is too pale on the dark tile surfaces*/
-:root {
-    --format-tiles-danger-text: var(--bs-danger-text-emphasis, #b02a37);
-}
-[data-bs-theme="dark"] {
-    --format-tiles-danger-text: #ff8f8f;
-}
-
 .format-tiles .course-content ul.tiles .tile.tilestyle-1,
 .format-tiles .course-content ul.tiles .tile.tilestyle-2,
 .format-tiles li.section:not(#section-0).tilestyle-1 .course-section-header,
@@ -62,7 +54,8 @@
 }
 .format-tiles .sectionbutton:focus-visible,
 .format-tiles .sectionbutton:focus {
-    outline: 1px solid black;
+    outline: 2px solid var(--bs-emphasis-color, currentColor);
+    outline-offset: 2px;
 }
 
 .format-tiles .filterbutton.selected {
@@ -118,9 +111,6 @@
     padding: 0;
 }
 
-.format-tiles .modal-backdrop.fade.in {
-    opacity: 0.2;
-}
 .format-tiles ul.tiles li.section .format_tiles_section_content {
     margin: 0 10px 0 0;
 }
@@ -323,9 +313,6 @@
     box-shadow: 2px 4px 5px 0 #bdbdbd;
     position: relative;
 }
-.format-tiles .tile a.tile-link:focus-visible {
-    box-shadow: rgb(96, 96, 96) 2px 4px 5px 0;
-}
 .format-tiles .course-content ul.tiles .tile:focus-visible h3 {
     text-decoration: underline;
 }
@@ -404,18 +391,6 @@
 
 .format-tiles .expandcontrol {
     margin: 0 30px 0 30px;
-}
-
-.format-tiles ul.tiles li.section .warningtext {
-    color: var(--format-tiles-danger-text, red);
-}
-
-.format-tiles ul.tiles li.section .warningbar {
-    background-color: var(--bs-danger, red);
-    color: #fff;
-    padding: 5px;
-    margin-left: 40px;
-    width: 90%;
 }
 
 .format-tiles ul.tiles li#spacersection {
@@ -598,7 +573,7 @@
     display: inline-block;
     border-radius: 50%;
     border: none;
-    color: var(--bs-btn-color);
+    color: var(--bs-body-color, currentColor);
 }
 .format-tiles .expand-section,
 .format-tiles .collapse-section {
@@ -833,11 +808,6 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     background-color: #a90202;
     color: #fff;
     border-color: #a90202ff;
-}
-.format-tiles .modal-header .completioncheckbox:not(.complete) {
-    border: 2px solid #ffffffa8;
-    color: #fff;
-    background-color: var(--bs-secondary-bg, #efefef);
 }
 .format-tiles .completioncheckbox.background-course-base.complete i {
     color: #fff;
@@ -1087,8 +1057,6 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 
 .format-tiles .icon_picker_modal .modal-dialog {
     max-width: 90%;
-}
-.format-tiles .modal-dialog {
     margin: 5px auto;
 }
 .format-tiles .pickericon .icon,
@@ -1118,28 +1086,13 @@ body.jsenabled.format-tiles #collapsiblesec0 {
 .format-tiles .embed_cm_modal.mod_page .modal-body {
     padding: 2em;
 }
-.format-tiles .modal-container.embed_cm_modal .modal-header {
-    padding: 5px 10px 5px 10px;
-    opacity: 0.8;
-    border-bottom: 0;
-    text-shadow: none;
-    background-image: none;
-    color: #fff;
-    min-height: 23px;
-}
 .format-tiles .embed_cm_modal button[data-action="toggle-manual-completion"] {
     padding: 2px 5px 0 5px;
-}
-.format-tiles .modal-container .modal .modal-header.embed_cm_modal h3 {
-    color: #fff;
 }
 /*Different themes have these classes slightly differently so repeat some of these*/
 .format-tiles .embed_cm_modal .modal-header {
     padding: 5px 10px 5px 10px;
     justify-content: space-between;
-}
-.format-tiles .modal-container.embed_cm_modal .modal .modal-header h3 {
-    color: #fff;
 }
 .format-tiles .embed_cm_modal .modal-footer {
     display: none;
@@ -1361,7 +1314,8 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     margin-right: 0;
 }
 .format-tiles .completioncheckbox:focus {
-    outline: none;
+    outline: 2px solid var(--bs-emphasis-color, currentColor);
+    outline-offset: 2px;
 }
 .format-tiles .embed-module-buttons button.completioncheckbox {
     height: 25px;
@@ -1376,8 +1330,7 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     min-width: 30px;
     width: 30px;
 }
-.format-tiles .embed_cm_modal .embed_file_button,
-.format-tiles .modal-container .modal .modal-header button.btn-close {
+.format-tiles .embed_cm_modal .embed_file_button {
     display: flex;
     align-items: center;
     width: 28px;
@@ -1392,18 +1345,6 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     text-align: center;
     box-shadow: none;
     color: var(--bs-btn-close-color);
-}
-.format-tiles .modal-container .modal .modal-header button.btn-close {
-    font-size: 1.8em;
-    background-repeat: no-repeat;
-    background-image: url([[pix:format_tiles|close-white]]);
-    background-size: 17px 17px;
-}
-.format-tiles .modal-container .modal .modal-header .embed-module-buttons .btn-close {
-    /*Clean theme.*/
-    position: relative;
-    top: unset;
-    right: unset;
 }
 .format-tiles .embed-module-buttons {
     min-width: 125px;
@@ -1568,21 +1509,19 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     height: 25px;
     color: var(--bs-secondary-color, grey);
 }
-.format-tiles .modal-header:focus,
 .format-tiles .resourcecontent:focus,
 .format-tiles li.activity.subtile {
     box-shadow: 2px 4px 5px 0 #bdbdbd;
     border-radius: 10px;
 }
-.format-tiles .modal-header:focus,
 .format-tiles .resourcecontent:focus,
 .format-tiles li.activity.subtile:not(:focus) {
     outline: unset;
 }
 .format-tiles a.cm-link:focus,
 .format-tiles a.tile-link:focus {
-    outline: unset;
-    box-shadow: 2px 4px 5px 0 #bdbdbd;
+    outline: 2px solid var(--bs-emphasis-color, currentColor);
+    outline-offset: 2px;
 }
 .format-tiles li.activity a.cm-link {
     width: 100%;
@@ -1618,17 +1557,6 @@ body.jsenabled.format-tiles #collapsiblesec0 {
     padding-right: 3em;
 }
 
-.format-tiles .tooltip-inner {
-    background-color: var(--bs-white, #ffffff);
-    color: var(--bs-body-color, #181818);
-    border: 2px solid var(--bs-border-color, #4a4a4a);
-    opacity: 0.98;
-}
-.format-tiles.format-tiles-subtiles .tooltip-inner ul {
-    margin-left: 0;
-    padding-left: 10px;
-    text-align: left;
-}
 .format-tiles.editing .section-summary-activities {
     width: 200px;
     text-align: right;
