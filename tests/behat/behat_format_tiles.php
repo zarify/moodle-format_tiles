@@ -1221,8 +1221,11 @@ class behat_format_tiles extends behat_base {
     public function i_click_on_the_course_index_entry($name) {
         $result = $this->evaluate_tiles_js('
             const wanted = ' . json_encode($name) . ';
+            // Core 6.0 renders the section title as a plain link (data-for="section_title") when the section has a
+            // URL, and only the chevron keeps data-action="togglecourseindexsection"; accept both shapes.
             const links = Array.from(document.querySelectorAll(
-                "nav#courseindex a.courseindex-link[data-action=\'togglecourseindexsection\']"
+                "nav#courseindex a.courseindex-link[data-for=\'section_title\'], "
+                + "nav#courseindex .courseindex-link[data-action=\'togglecourseindexsection\']"
             ));
             const match = links.find((link) => link.textContent.trim() === wanted);
             if (!match) {

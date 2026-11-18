@@ -652,8 +652,16 @@ define(["jquery", "core/templates", "core/ajax", "format_tiles/browser_storage",
             if (courseIndex.length > 0) {
                 courseIndex.on('click', (e) => {
                     const target = $(e.target);
-                    if (target.hasClass('courseindex-link') && target.data('action') === 'togglecourseindexsection') {
-                        const sec = target.closest('.courseindex-section');
+                    const link = target.hasClass('courseindex-link') ? target : target.closest('a.courseindex-link');
+                    // Core 6.0 only keeps data-action="togglecourseindexsection" on the chevron span, and renders
+                    // the section title as a link to the section when the section has a URL. Accept both shapes so
+                    // a section or subsection title still opens the tile instead of leaving the page.
+                    const isSectionLink = link.length > 0 && (
+                        link.data('action') === 'togglecourseindexsection'
+                        || link.attr('data-for') === 'section_title'
+                    );
+                    if (isSectionLink) {
+                        const sec = link.closest('.courseindex-section');
                         const sectionNumber = sec.data('number');
                         if (sec && sectionNumber !== undefined) {
                             e.preventDefault();
