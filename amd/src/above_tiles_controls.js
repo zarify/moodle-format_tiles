@@ -24,11 +24,21 @@
 define([], function() {
     "use strict";
 
+    let initialised = false;
+
     return {
         /**
          * Navigate to the URL stored on the control that was toggled.
+         *
+         * The buttons template is rendered twice per course page (the xs and sm copies), and
+         * each render initialises the module, so a second listener would toggle the preference
+         * twice per click and leave it unchanged. Register at most one listener per page.
          */
         init: function() {
+            if (initialised) {
+                return;
+            }
+            initialised = true;
             document.addEventListener('change', function(event) {
                 const input = event.target.closest('[data-format-tiles-control-url]');
                 if (!input) {
