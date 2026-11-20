@@ -1628,6 +1628,26 @@ class behat_format_tiles extends behat_base {
     }
 
     /**
+     * Wait until an element is visible, instead of sleeping for a fixed number of seconds.
+     *
+     * @Then /^I wait until "(?P<element_string>(?:[^"]|\\")*)" "(?P<selector_string>(?:[^"]|\\")*)" is visible$/
+     * @param string $element
+     * @param string $selectortype
+     */
+    public function i_wait_until_element_is_visible(string $element, string $selectortype): void {
+        $this->spin(function() use ($element, $selectortype) {
+            try {
+                return $this->get_selected_node($selectortype, $element)->isVisible();
+            } catch (\Exception $e) {
+                return false;
+            }
+        }, false, false, new \Behat\Mink\Exception\ExpectationException(
+            "'{$element}' '{$selectortype}' did not become visible",
+            $this->getSession()
+        ));
+    }
+
+    /**
      * Assert a section wrapper carries usable core return options.
      *
      * @param string $selector the wrapper selector

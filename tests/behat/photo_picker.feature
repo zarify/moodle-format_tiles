@@ -43,9 +43,7 @@ Feature: Teacher can allocate photos to tiles
     And I am on "Business Law" course homepage with editing mode on
     And I wait until the page is ready
     And I click on "#tileicon_1" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I follow "Upload new photo"
     And I upload "course/format/tiles/tests/fixtures/images/placeholder_1.jpg" file to "Upload new photo" filemanager
     And I press "Save changes"
@@ -54,29 +52,22 @@ Feature: Teacher can allocate photos to tiles
 
     And I am on "Business Law" course homepage with editing mode on
     And I wait until the page is ready
-    And I wait "1" seconds
     And I click on "#tileicon_2" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
+    And I wait until "#icon_picker_modal" "css_element" is visible
     And I click on "button.pickericon[title=\"Refresh\"]" "css_element" in the "#icon_picker_modal" "css_element"
     And I wait until the page is ready
     And I wait "2" seconds
 
     And I click on "#tileicon_3" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I follow "Upload new photo"
     And I upload "course/format/tiles/tests/fixtures/images/placeholder_3.jpg" file to "Upload new photo" filemanager
     And I press "Save changes"
     And I wait until the page is ready
     And I should see "Image saved for 'Tile 3'"
 
-    And I wait "1" seconds
     And I click on "#tileicon_7" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I follow "Photo library"
     And I wait until the page is ready
 #    // We use title^= (starts with) because the image as saved will have had 3 random chars added e.g. placeholder_1_dwo.jpg
@@ -97,25 +88,17 @@ Feature: Teacher can allocate photos to tiles
 
     And I am on "Course 2" course homepage with editing mode on
     And I wait until the page is ready
-    And I wait "1" seconds
     And I click on "#tileicon_3" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I follow "Photo library"
-    And I wait until the page is ready
-    And I wait "1" seconds
+    And I wait until ".photo[title^=\"placeholder_1_\"]" "css_element" is visible
     And I click on ".photo[title^=\"placeholder_1_\"]" "css_element" in the "#icon_picker_modal" "css_element"
     And I wait until the page is ready
 
-    And I wait "1" seconds
     And I click on "#tileicon_6" "css_element"
-    And I wait until the page is ready
-    And I wait "1" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I follow "Photo library"
-    And I wait until the page is ready
-    And I wait "1" seconds
+    And I wait until ".photo[title^=\"placeholder_3_\"]" "css_element" is visible
     And I click on ".photo[title^=\"placeholder_3_\"]" "css_element" in the "#icon_picker_modal" "css_element"
     And I wait until the page is ready
 

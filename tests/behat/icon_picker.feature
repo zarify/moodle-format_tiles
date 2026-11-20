@@ -34,11 +34,8 @@ Feature: Teacher can allocate icons to tiles
     When I log in as "teacher1"
     And I am on "Business Law" course homepage with editing mode on
     And I wait until the page is ready
-    And I wait "1" seconds
     And I click on "#tileicon_1" "css_element"
-    And I wait until the page is ready
-    And I wait "3" seconds
-    And "Pick a new icon or background photo" "dialogue" should be visible
+    And I wait until "Pick a new icon or background photo" "dialogue" is visible
     And I click on "button.pickericon[title=\"Map\"]" "css_element" in the "#icon_picker_modal" "css_element"
     And I wait until the page is ready
     And I click on "#tileicon_2" "css_element"

@@ -61,8 +61,7 @@ Feature: Teacher can add a page to a course and open it with subtiles off
 #    Check that we can see the original page we added
     And I wait until activity "Test page 2" exists in "non-subtile" format
     And I click format tiles activity "Test page 2"
-    And I wait "2" seconds
-    And "Test page 2" "dialogue" should be visible
+    And I wait until "Test page 2" "dialogue" is visible
     And "Test page 2 content" "text" should be visible
     And "Close" "button" should exist in the "Test page 2" "dialogue"
     And I click on "Close" "button" in the "Test page 2" "dialogue"

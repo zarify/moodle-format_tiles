@@ -111,7 +111,6 @@ Feature: Show/hide course sections in format_tiles
     And activity in format tiles is not dimmed "Test hidden forum 31 name"
 
     And I am on "Course 1" course homepage
-    And I wait "1" seconds
     And I wait until the page is ready
     And I hide tile "1"
     And I wait until the page is ready
