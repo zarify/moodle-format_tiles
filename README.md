@@ -22,9 +22,11 @@ This repository is a self-maintained fork of bycs-lp/moodle-format_tiles (upstre
 fork's default branch. The base commit is upstream `b20b26c`.
 
 **Supported Moodle versions:** 5.3 (LTS) – 6.0, declared as `$plugin->supported = [503, 600]`.
-The 5.3 floor exists because the replacement section APIs
-(`\core_courseformat\formatactions::section()` → `core_courseformat\local\sectionactions`) do not
-exist in Moodle 4.5 or 5.0–5.2.
+Moodle 4.5 already provides `\core_courseformat\formatactions::section()` and the
+`core_courseformat\local\sectionactions` class. The 5.3 minimum is for the methods this fork
+calls on that class: `set_marker()`, `remove_all_markers()` and `set_visibility()`. Those
+methods are absent in Moodle 4.5, so lowering the version requirement would not make the fork
+compatible.
 
 Verified on Moodle 6.0dev (Build 20261021, core commit `46c042e7d`) and on Moodle 5.3 LTS with the
 plugin's PHPUnit suite (`tests/`, including `tests/courseformat/` and `tests/privacy/`), its Behat
