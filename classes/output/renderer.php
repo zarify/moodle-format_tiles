@@ -97,8 +97,9 @@ class renderer extends section_renderer {
      * By default, the template used for update a section is the same as when it renders initially,
      * but format plugins are free to override this method to provide extra effects or so.
      *
-     * In tiles, we override so that when teacher hides/shows tile with AJAX, re-rendered sec includes photo/icon.
-     * @see \format_tiles\output\section_renderer::render_section()
+     * In tiles, we override so that when the teacher adds or hides/shows a tile with AJAX, the
+     * partial update renders with the same Tiles format renderer as the edit page. That gives the
+     * tile its icon or photo and its inline editable name, instead of core's plain title.
      * @see \format_tiles\output\courseformat\content\section\controlmenu::export_for_template()
      * @param \core_courseformat\base $format the course format
      * @param \section_info $section the section info
@@ -107,10 +108,7 @@ class renderer extends section_renderer {
     public function course_section_updated(\core_courseformat\base $format, \section_info $section): string {
         $sectionclass = $format->get_output_classname('content\\section');
         $output = new $sectionclass($format, $section);
-        $renderer = new \format_tiles\output\section_renderer($this->page, $this->target);
-
-        // This ends up calling \format_tiles\output\section_renderer::render_section().
-        return $renderer->render($output);
+        return $this->render_from_template('format_tiles/local/content/section', $output->export_for_template($this));
     }
 
     /**

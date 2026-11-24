@@ -77,3 +77,16 @@ Feature: Sections can be edited and deleted in tiles format
     And I am on "Edit Delete Secs Course" course homepage
     Then I should not see "Tile 5"
     And I should see "Tile 4"
+
+  @javascript @format_tiles_new_section_title
+  Scenario: Rename a newly added tile without reloading the page
+    When I click on "a[data-action='addSection']" "css_element" in the "li#section-5" "css_element"
+    And I wait until the page is ready
+    Then I should see "Tile 6" in the "li#section-6" "css_element"
+    When I click on "Edit section name" "link" in the "li#section-6" "css_element"
+    And I set the field "New name for section Tile 6" to "New tile renamed inline"
+    And I press the enter key
+    And I wait until the page is ready
+    Then I should see "New tile renamed inline" in the "li#section-6" "css_element"
+    When I reload the page
+    Then I should see "New tile renamed inline" in the "li#section-6" "css_element"

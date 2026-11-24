@@ -52,6 +52,67 @@ define(["jquery", "core/ajax"], function ($, ajax) {
     const isSectionPage = $(Selector.TILES).length === 0;
 
     /**
+     * Work out the narrowest and widest footprint of one tile in the wide layout.
+     *
+     * The widths come from the tile CSS rather than from a tile that has already been laid out:
+     * tiles grow with flex-grow, so measuring a laid-out tile understates how many columns the
+     * available width can hold (e.g. four 260px tiles suggest four columns where five fit).
+     *
+     * @param {jQuery} tiles the tiles list
+     * @param {Number} tileMargin the combined left and right tile margin in px
+     * @param {Object} tileWidths the fallback tile widths
+     * @return {Object} the min and max footprints in px, and whether they fell back to a measurement
+     */
+    var getTileFootprints = function(tiles, tileMargin, tileWidths) {
+        var legacyFootprint = function() {
+            var firstTile = $(tiles.find(Selector.TILE)[0]);
+            // Default standard as min tile width if we can't get the actual width.
+            var measured = (firstTile.width() || tileWidths.standard) + tileMargin;
+            return {min: measured, max: measured, legacy: true};
+        };
+        var tileElement = tiles.children(Selector.TILE).not(Selector.SPACER).get(0);
+        if (!tileElement) {
+            return legacyFootprint();
+        }
+        var style = window.getComputedStyle(tileElement);
+        var pixels = function(value) {
+            var match = /^(-?[\d.]+)px$/.exec(value || "");
+            return match ? parseFloat(match[1]) : null;
+        };
+        var sumPixels = function(values) {
+            var total = 0;
+            for (var i = 0; i < values.length; i++) {
+                if (values[i] === null) {
+                    return null;
+                }
+                total += values[i];
+            }
+            return total;
+        };
+        var flexBasis = pixels(style.flexBasis);
+        var maxWidth = pixels(style.maxWidth);
+        // minWidth is usually auto, which sets no numeric floor of its own.
+        var minWidth = style.minWidth === "auto" ? 0 : pixels(style.minWidth);
+        var margins = sumPixels([pixels(style.marginLeft), pixels(style.marginRight)]);
+        // Padding and borders sit outside a content-box width, so both footprints grow by them.
+        var chrome = style.boxSizing === "content-box"
+            ? sumPixels([
+                pixels(style.paddingLeft), pixels(style.paddingRight),
+                pixels(style.borderLeftWidth), pixels(style.borderRightWidth)
+            ])
+            : 0;
+        if (flexBasis === null || maxWidth === null || minWidth === null || margins === null || chrome === null) {
+            return legacyFootprint();
+        }
+        var minFootprint = Math.max(minWidth, Math.min(flexBasis, maxWidth)) + chrome + margins;
+        var maxFootprint = Math.max(minWidth, maxWidth) + chrome + margins;
+        if (!(minFootprint > 0) || !(maxFootprint > 0)) {
+            return legacyFootprint();
+        }
+        return {min: minFootprint, max: maxFootprint, legacy: false};
+    };
+
+    /**
      * If we have a single tile on the last row it looks odd.
      * We might want to shrink the tile window down a little to even it out.
      * So we work out how many per row would be optimal, and shrink the window accordingly.
@@ -74,19 +135,16 @@ define(["jquery", "core/ajax"], function ($, ajax) {
             mobileMin: 160
         };
         try {
-            var tilesParentWidth = tilesOuter.parent().innerWidth();
-            var firstTile = $(tiles.find(Selector.TILE)[0]);
-            // Get the width of one tile.
-            var oneTileWidth = firstTile.width()
-                ? firstTile.width()
-                : TILE_WIDTHS.standard; // Default standard as min tile width if we can't get the actual width.
+            var tilesParentWidth = tilesOuter.parent().width();
             var tileMargin = 14; // Margin 7px either side.
-            oneTileWidth = oneTileWidth + tileMargin;
             var resizeWidth = "inherit";
             // Skip if window is only 2 or smaller than 2 tiles wide already.
             // This ensures that we don't crush the tiles into the centre (i.e. we use at least x% of width).
             var maxPossibleTilesPerRow = Math.floor(tilesParentWidth / TILE_WIDTHS.min);
             var tileCount = ($(Selector.TILE).not(Selector.SPACER).length); // How many tiles in this course.
+            // How close the new width must be to the applied width before we skip the update.  The wide
+            // branch below narrows this to 1px because a 50px tolerance can hide a change of column count.
+            var widthTolerance = 50;
             if (tilesParentWidth < TILE_WIDTHS.mobileMin * 2) {
                 // Only space for one tile - don't resize to save space.
                 dfd.reject("Too narrow to resize");
@@ -98,60 +156,33 @@ define(["jquery", "core/ajax"], function ($, ajax) {
                 // Here we set the max width to the space we have available, so that tiles are centred.
                 resizeWidth = TILE_WIDTHS.standard * maxPossibleTilesPerRow;
             } else {
-                // Make a range of numbers in an array.  e.g. range(2,5) = [2, 3, 4, 5].
-                var range = function (start, end) {
-                    var res = [];
-                    for (start; start <= end; start += 1) {
-                        res.push(start);
-                    }
-                    return res;
-                };
-
-                // How many tiles per row could we fit on the screen, if we put in as many as possible?
-                var rowMaxCount = Math.min(
-                    Math.floor(tilesParentWidth / oneTileWidth),
-                    tileCount
-                );
+                // Fit as many tiles as the CSS allows.  The capacity comes from the space available and the
+                // tile's narrowest CSS footprint, so a tile grown by the previous layout cannot cap the count.
+                widthTolerance = 1;
+                var footprints = getTileFootprints(tiles, tileMargin, TILE_WIDTHS);
+                var capacity = Math.max(1, Math.floor(tilesParentWidth / footprints.min));
+                var columns = Math.min(capacity, tileCount);
                 // If we'd have a single row of more than 5 tiles, split it into 2.
-                if (tileCount <= rowMaxCount && tileCount > 5) {
-                    resizeWidth = (Math.floor(tileCount / 2) + 1) * oneTileWidth;
-                } else if (rowMaxCount > 3 && tileCount / rowMaxCount <= 3) {
-                    // If we can fit 3 tiles per row max, we don't restrict to 2, as this makes content window unnecessarily small.
-                    // Also if we have 3 or more rows (3 or more) we don't bother restricting as the last row is not so noticeable.
-
-                    // How many tiles per row do we want as a minimum (in order to occupy a reasonable amount of width)?
-                    var rowMinCount = Math.floor(tilesParentWidth / oneTileWidth);
-
-                    // What are the possibilities for tiles per row?  Then we can look at which we want.
-                    var possibleRowCounts = range(rowMinCount, rowMaxCount).reverse(); // Something like [6, 5, 4, 3].
-
-                    // For each possibility, how many tiles would that leave on the last row?
-                    var lastRowRemainderTiles = possibleRowCounts.map(function (num) {
-                        return tileCount % num;
-                    });
-                    if (lastRowRemainderTiles.indexOf(0) !== -1) {
-                        // We have the option of having a *full* last row so take that.
-                        resizeWidth = oneTileWidth * possibleRowCounts[lastRowRemainderTiles.indexOf(0)];
-                    } else if (tileCount < rowMinCount) {
-                        resizeWidth = tileCount * oneTileWidth;
-                    } else {
-                        // Otherwise make the last row as full as possible (few tiles on last row looks worse).
-                        resizeWidth = oneTileWidth * possibleRowCounts[lastRowRemainderTiles.indexOf(
-                            Math.max.apply(null, lastRowRemainderTiles)
-                        )];
-                    }
+                if (tileCount <= capacity && tileCount > 5) {
+                    columns = Math.floor(tileCount / 2) + 1;
+                }
+                if (footprints.legacy) {
+                    // Measured fallback: keep the old measured-width sizing when the CSS gives us nothing usable.
+                    resizeWidth = columns * footprints.min;
                 } else {
-                    // In these cases, we don't artificially narrow the view, but we do put a max width on of the existing width.
-                    // This is so that, when sections open under the tiles, they do not stick out with extra width beyond the tiles.
-                    // It also allows the auto margin to centre the tiles.
-                    resizeWidth = rowMaxCount * oneTileWidth;
+                    // Use the width the tiles need for those columns, but never more than the space available,
+                    // so that sections opening under the tiles do not stick out and the auto margin can centre them.
+                    resizeWidth = Math.ceil(Math.min(
+                        tilesParentWidth * columns / capacity,
+                        columns * footprints.max
+                    ));
                 }
             }
 
             // If we already have the desired width, nothing to do here so skip it.
             // We use the width on the outer element tilesOuter so as to restrict width of section zero as well.
             var existingWidth = parseInt(tilesOuter.css("max-width").replace("px", ""));
-            if (Math.abs(resizeWidth - existingWidth) < 50) {
+            if (Math.abs(resizeWidth - existingWidth) < widthTolerance) {
                 // Nothing to do.
                 dfd.resolve();
             } else {

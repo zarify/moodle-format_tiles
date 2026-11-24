@@ -809,3 +809,11 @@ Other
 5.2.4 (2026102800)
 ==================
 - Present the tile again when returning via the section breadcrumb or a #module anchor: the expand guard mistook the pending open target for an already-open tile, leaving the content hidden and the page dimmed after returning from an activity
+
+5.2.5 (2026112500)
+==================
+- Render a partially refreshed section with the Tiles format renderer: a newly added tile now shows the normal title with its inline
+  rename control straight away, instead of core's plain, larger title until the page is reloaded (also keeps the icon after hide/show)
+- Size the wide tile layout from the tile CSS (flex-basis, max-width, margins) rather than from a tile the previous layout had already
+  grown, so widening the window restores the full column count and the General section width instead of staying at the narrow width
+- Drop the now unused format_tiles\output\section_renderer class
