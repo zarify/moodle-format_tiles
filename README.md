@@ -61,6 +61,50 @@ Two watch-points remain, both announced by core but not yet executed:
    DOM (`.modal-header`, `button.btn-close`). Re-port them when core changes those templates or
    `lib/templates/modal.mustache`.
 
+## Boost drawer buttons on Moodle 5.3+
+
+Since [MDL-88411](https://moodle.atlassian.net/browse/MDL-88411) the Boost course-index and
+block-drawer openers are anchored to the content card instead of the screen edges. The Tiles
+overview removes Boost's width cap on the course area, so on a wide window the closed openers are
+drawn over the course header and the outer tiles. No banner is needed for that overlap.
+
+The buttons belong to the Boost theme; this format neither renders nor positions them. To keep them
+at the screen edges, append this block to the theme's Raw SCSS and save it under **Site
+administration → Appearance → Themes → Edit theme settings 'Boost' → Advanced settings → Raw
+SCSS** (the second Raw SCSS field, not **Raw initial SCSS**):
+
+```scss
+/* BEGIN Boost drawer edge placement */
+#page.drawers .drawer-toggles .drawer-left-toggle {
+    left: 0 !important;
+    right: auto !important;
+}
+
+#page.drawers .drawer-toggles .drawer-right-toggle {
+    left: auto !important;
+    right: 0 !important;
+}
+
+#page.drawers .drawer-toggles .drawer-toggler > .btn {
+    margin-inline: 0;
+}
+
+#page.drawers .drawer-toggles .drawer-left-toggle > .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+#page.drawers .drawer-toggles .drawer-right-toggle > .btn {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+/* END Boost drawer edge placement */
+```
+
+SCSS already in that field is kept, and only the marked block is replaced when the snippet is
+updated. The buttons return to their Moodle 4.5 placement at the screen edges; the opened drawers
+keep their current width, height and behaviour.
+
 ## Re-testing per Moodle release
 
 Click an activity inside a tile and assert `.modal.show.embed_cm_modal` opens with a clean browser
