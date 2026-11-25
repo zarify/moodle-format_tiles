@@ -1,13 +1,13 @@
 # Test coverage — format_tiles fork
 
-Scope: `master-forked`, release 5.2.4, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
+Scope: `master-forked`, release 5.2.5, Moodle 5.3 LTS – 6.0. Every row records the test that now guards it, or `backlog`.
 
 ## Suite inventory
 
 | Suite | Files | Cases |
 |---|---|---|
 | PHPUnit | `tests/*_test.php`, `tests/courseformat/*_test.php`, `tests/privacy/provider_test.php` (10 files) | 89 methods (102 cases with data sets) |
-| Behat | `tests/behat/*.feature` (32 features) | 80 scenarios, `@format_tiles` |
+| Behat | `tests/behat/*.feature` (32 features) | 81 scenarios, `@format_tiles` |
 
 ## (1) Deprecated-API removal / Moodle 6 uplift
 
@@ -39,6 +39,7 @@ Scope: `master-forked`, release 5.2.4, Moodle 5.3 LTS – 6.0. Every row records
 | 5b4257f course index subsection click opens, scrolls to and focuses the subsection | `amd/src/course.js` (`expandSection`, `populateAndExpandSection`, `initCourseIndexWatcher`) | `tests/behat/subsection_coursepage_tiles.feature` (two `Course index subsection link…` scenarios, desktop and small screen) |
 | 764dd1e mobile activity padding rule matches the course view | `styles.css:2138` | `tests/behat/mobile_activity_padding.feature` |
 | 8f72042 non-displayable modules (qbank) excluded from the tile activity list and progress | `classes/output/course_output.php:862-882` | `tests/format_tiles_test.php::test_non_displayable_module_is_not_rendered` |
+| 1034885 a newly added tile gets the Tiles title with its inline rename immediately (fragment rendered by the format renderer); wide layout sized from the tile CSS instead of an already-grown tile | `classes/output/renderer.php:108`, `amd/src/tile_fitter.js` (`resizeTilesDivWidth`) | `tests/behat/edit_delete_sections.feature` (`Rename a newly added tile without reloading the page`); the width behaviour was measured in headless Chrome, no automated guard |
 
 ## (3) Upgrade migrations / changeover
 
